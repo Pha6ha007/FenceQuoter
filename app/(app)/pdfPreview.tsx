@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, Share, Text, TouchableOpacity, View } from "react-native";
 
+
 import { generateQuotePdf, QuoteVariant, VariantType } from "@/lib/pdf";
 import { sendQuoteEmail, sendQuoteSms } from "@/lib/send";
 import { quotePdfPath, uploadPdfToBucket } from "@/lib/storage";
@@ -62,7 +63,7 @@ export default function PdfPreviewScreen() {
   const [pdfPath, setPdfPath] = useState<string | null>(null);
 
   // TODO: replace with RevenueCat entitlement
-  const [isPro, _setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(false);
 
   const currencySymbol = useMemo(() => {
     const c = profile?.currency ?? "USD";
@@ -340,13 +341,16 @@ export default function PdfPreviewScreen() {
     return (
       <View className="flex-1 items-center justify-center px-6">
         <Text className="text-lg font-bold">Nothing to preview</Text>
-        <Text className="mt-2 text-zinc-600 text-center">We could not load this quote.</Text>
+        <Text className="mt-2 text-zinc-600 text-center">We couldn't load this quote.</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-white" contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}>
+<ScrollView
+  className="flex-1 bg-white"
+  contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+>
       <View className="mb-3">
         <Text className="text-2xl font-extrabold">PDF Preview</Text>
         <Text className="mt-1 text-zinc-600">
