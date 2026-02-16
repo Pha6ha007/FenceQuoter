@@ -229,11 +229,15 @@ export default function NewQuoteScreen() {
         className="flex-1"
       >
         <ScrollView
-          className="p-4"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
         >
+          <View
+            className="p-4"
+            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+          >
           {/* Header with save status */}
-          <View className="flex-row justify-between items-center mb-4">
+          <View className="flex-row justify-between items-center mb-6">
             <View>
               <Text className="text-2xl font-bold text-gray-900 dark:text-white">
                 New Quote
@@ -266,38 +270,41 @@ export default function NewQuoteScreen() {
 
           {/* Action Buttons */}
           <View className="gap-3 mb-6">
-            {/* Calculate Button */}
+            {/* Calculate Button - Primary */}
             <Pressable
-              className={`rounded-lg py-4 px-4 ${
+              className={`rounded-lg items-center justify-center ${
                 isCalculating ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
               }`}
+              style={{ height: 48 }}
               onPress={handleCalculate}
               disabled={isCalculating}
             >
               {isCalculating ? (
                 <View className="flex-row items-center justify-center">
                   <ActivityIndicator color="white" />
-                  <Text className="text-white font-semibold text-lg ml-2">
+                  <Text className="text-white font-semibold text-base ml-2">
                     Calculating...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-white text-center font-semibold text-lg">
+                <Text className="text-white text-center font-semibold text-base">
                   Calculate →
                 </Text>
               )}
             </Pressable>
 
-            {/* Clear Draft Button */}
+            {/* Clear Draft Button - Secondary */}
             <Pressable
-              className="rounded-lg py-3 px-4 border border-gray-300 dark:border-gray-600"
+              className="rounded-lg border border-gray-300 dark:border-gray-600 items-center justify-center"
+              style={{ height: 48 }}
               onPress={handleClearDraft}
               disabled={isCalculating}
             >
-              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium">
+              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium text-base">
                 Clear Draft
               </Text>
             </Pressable>
+          </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

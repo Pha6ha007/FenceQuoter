@@ -779,7 +779,7 @@ Phase 7 — Polish + Ship
 ## 12. Текущий статус
 
 **Последнее обновление:** 2026-02-16
-**Текущая фаза:** Phase 5 — History + Settings
+**Текущая фаза:** Phase 7 — Polish + Ship
 
 ### Что сделано:
 
@@ -813,10 +813,28 @@ Phase 7 — Polish + Ship
 - [x] Supabase Edge Functions: send-email, send-sms
 - [x] Paywall check перед отправкой
 
-### Что делаем дальше:
-- [ ] history screen (список квоутов с фильтрами)
-- [ ] settings screen (редактирование профиля, материалов)
-- [ ] paywall screen (RevenueCat интеграция)
+**Phase 5 — History + Settings** ✅
+- [x] history screen (фильтры по статусу, pull-to-refresh, FAB)
+- [x] QuoteListItem component (swipe-to-delete, status badges)
+- [x] EmptyState component
+- [x] settings screen (useProfile + useSettings интеграция)
+- [x] Сохранение настроек в Supabase
+
+**Phase 6 — Paywall** ✅
+- [x] useEntitlements hook (RevenueCat интеграция)
+- [x] paywall screen (purchase, restore, return flow)
+- [x] pdfPreview: динамическая проверка isPro через useEntitlements
+- [x] pdfPreview: initial paywall check (sent_quotes_this_month >= 3)
+- [x] Watermark только для free-юзеров
+
+### Что делаем дальше (Phase 7):
+- [ ] App icon + splash screen
+- [ ] Empty states polish
+- [ ] Error handling sweep
+- [ ] Offline indicator (useNetworkStatus)
+- [ ] EAS Build config (eas.json)
+- [ ] Production builds (iOS + Android)
+- [ ] App Store / Google Play submission
 
 ### Блокеры:
 - нет

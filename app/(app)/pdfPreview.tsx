@@ -1,16 +1,33 @@
 // app/(app)/pdfPreview.tsx
 // PDF preview and sending screen — CLAUDE.md section 4.5
+// PDF generation requires development build (eas build --profile development)
+// In Expo Go, we show HTML preview in WebView instead.
 
 import { useLocalSearchParams, router } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { generateQuotePdf } from "@/lib/pdf";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { generateQuotePdf, isPdfGenerationAvailable } from "@/lib/pdf";
 import type { QuoteVariant, VariantType } from "@/types/quote";
-import { sendQuoteEmail, sendQuoteSms } from "@/lib/send";
+import { sendQuoteEmail } from "@/lib/send";
+
+// Conditionally import WebView for native platforms only
+let WebView: React.ComponentType<{ source: { html: string }; style?: object; scrollEnabled?: boolean; showsVerticalScrollIndicator?: boolean }> | null = null;
+if (Platform.OS !== "web") {
+  try {
+    WebView = require("react-native-webview").WebView;
+  } catch {
+    // WebView not available
+  }
+}
 import { quotePdfPath, uploadPdfToBucket } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
+
+// RevenueCat API keys (from environment)
+const RC_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? "";
+const RC_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? "";
 
 // Types for Supabase rows
 interface QuoteRow {
@@ -54,9 +71,23 @@ export default function PdfPreviewScreen() {
 
   const [pdfFileUri, setPdfFileUri] = useState<string | null>(null);
   const [pdfPath, setPdfPath] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
-  // TODO: replace with RevenueCat entitlement
-  const [isPro, setIsPro] = useState(false);
+  // User info for RevenueCat
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // RevenueCat entitlements
+  const { isPro, isReady: isEntitlementsReady } = useEntitlements({
+    userId,
+    email: userEmail,
+    revenueCatIosApiKey: RC_IOS,
+    revenueCatAndroidApiKey: RC_ANDROID,
+  });
+
+  // Track if we've done the initial paywall check
+  const paywallCheckedRef = useRef(false);
 
   const currencySymbol = useMemo(() => {
     const c = profile?.currency ?? "USD";
@@ -87,6 +118,10 @@ export default function PdfPreviewScreen() {
         router.replace("/(auth)/login");
         return;
       }
+
+      // Set user info for RevenueCat entitlements
+      setUserId(user.id);
+      setUserEmail(user.email ?? null);
 
       const q = await supabase
         .from("quotes")
@@ -150,7 +185,7 @@ export default function PdfPreviewScreen() {
     if (!user) throw new Error("Not authenticated");
 
     // If we already uploaded (pdfPath exists), we don't need to regenerate/upload.
-    if (pdfPath) return { pdfPath };
+    if (pdfPath) return { pdfPath, html: previewHtml };
 
     // Generate local PDF
     const res = await generateQuotePdf({
@@ -172,6 +207,14 @@ export default function PdfPreviewScreen() {
       photoUrls: [], // MVP: can be filled with signed URLs from quote_photos later
     });
 
+    // Always store HTML for preview
+    setPreviewHtml(res.html);
+
+    // If PDF module not available (Expo Go), return HTML only
+    if (!res.filePath) {
+      return { pdfPath: null, html: res.html };
+    }
+
     setPdfFileUri(res.filePath);
 
     // Upload to Storage
@@ -190,31 +233,47 @@ export default function PdfPreviewScreen() {
     if (upd.error) throw upd.error;
 
     setPdfPath(path);
-    return { pdfPath: path };
-  }, [currencySymbol, isPro, pdfPath, profile, quote, settings]);
+    return { pdfPath: path, html: res.html };
+  }, [currencySymbol, isPro, pdfPath, previewHtml, profile, quote, settings]);
 
   const handleGenerate = useCallback(async () => {
     const gate = await checkPaywall();
     if (!gate.ok) {
-      router.push("/(app)/paywall");
+      router.push({
+        pathname: "/(app)/paywall",
+        params: { returnTo: "pdfPreview", quoteId: quoteId ?? "" },
+      });
       return;
     }
 
     setBusy(true);
     try {
-      await ensurePdfGeneratedAndUploaded();
-      Alert.alert("PDF ready", "Your PDF has been generated.");
+      const result = await ensurePdfGeneratedAndUploaded();
+
+      if (!result.pdfPath && result.html) {
+        // PDF module not available (Expo Go) — show HTML preview
+        setShowPreview(true);
+        Alert.alert(
+          "Preview Mode",
+          "PDF generation requires a development build. Showing HTML preview instead."
+        );
+      } else {
+        Alert.alert("PDF ready", "Your PDF has been generated.");
+      }
     } catch (e: any) {
       Alert.alert("PDF failed", e?.message ?? "Could not generate PDF");
     } finally {
       setBusy(false);
     }
-  }, [checkPaywall, ensurePdfGeneratedAndUploaded, router]);
+  }, [checkPaywall, ensurePdfGeneratedAndUploaded, quoteId, router]);
 
   const handleSendEmail = useCallback(async () => {
     const gate = await checkPaywall();
     if (!gate.ok) {
-      router.push("/(app)/paywall");
+      router.push({
+        pathname: "/(app)/paywall",
+        params: { returnTo: "pdfPreview", quoteId: quoteId ?? "" },
+      });
       return;
     }
 
@@ -244,39 +303,7 @@ export default function PdfPreviewScreen() {
     } finally {
       setBusy(false);
     }
-  }, [checkPaywall, ensurePdfGeneratedAndUploaded, quote, router]);
-
-  const handleSendSms = useCallback(async () => {
-    const gate = await checkPaywall();
-    if (!gate.ok) {
-      router.push("/(app)/paywall");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      await ensurePdfGeneratedAndUploaded();
-
-      const to = quote?.client_phone ?? undefined;
-      if (!to) {
-        Alert.alert("Missing phone", "Client phone is not set on this quote.");
-        return;
-      }
-
-      await sendQuoteSms(supabase, {
-        quote_id: quote!.id,
-        to,
-        message: `Hi ${quote!.client_name}, your quote is ready: {{link}}`,
-      });
-
-      Alert.alert("Sent", "SMS sent to client.");
-      router.replace("/(app)/history");
-    } catch (e: any) {
-      Alert.alert("Send failed", e?.message ?? "Could not send SMS");
-    } finally {
-      setBusy(false);
-    }
-  }, [checkPaywall, ensurePdfGeneratedAndUploaded, quote, router]);
+  }, [checkPaywall, ensurePdfGeneratedAndUploaded, quote, quoteId, router]);
 
   const handleShare = useCallback(async () => {
     setBusy(true);
@@ -317,9 +344,137 @@ export default function PdfPreviewScreen() {
     }
   }, [currencySymbol, isPro, pdfFileUri, profile, quote, settings]);
 
+  // Web-only: Download PDF via browser print dialog
+  const handleWebDownloadPdf = useCallback(async () => {
+    if (Platform.OS !== "web") return;
+
+    const gate = await checkPaywall();
+    if (!gate.ok) {
+      router.push({
+        pathname: "/(app)/paywall",
+        params: { returnTo: "pdfPreview", quoteId: quoteId ?? "" },
+      });
+      return;
+    }
+
+    setBusy(true);
+    try {
+      // Generate HTML if not already generated
+      let html = previewHtml;
+      if (!html && quote && profile && settings) {
+        const res = await generateQuotePdf({
+          quoteId: quote.id,
+          createdAtISO: quote.created_at,
+          companyName: profile.company_name,
+          companyPhone: profile.phone,
+          companyEmail: profile.email,
+          logoUrl: profile.logo_url,
+          clientName: quote.client_name,
+          clientAddress: quote.client_address,
+          clientEmail: quote.client_email,
+          clientPhone: quote.client_phone,
+          selectedVariant: quote.selected_variant,
+          variants: quote.variants,
+          termsTemplate: settings.terms_template,
+          currencySymbol,
+          freeWatermark: !isPro,
+          photoUrls: [],
+        });
+        html = res.html;
+        setPreviewHtml(html);
+      }
+
+      if (!html) {
+        Alert.alert("Error", "Could not generate quote preview");
+        return;
+      }
+
+      // Open new window with HTML and trigger print
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        // Small delay to ensure content is loaded
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      } else {
+        Alert.alert("Error", "Could not open print window. Please allow popups.");
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Could not generate PDF";
+      Alert.alert("Error", msg);
+    } finally {
+      setBusy(false);
+    }
+  }, [checkPaywall, currencySymbol, isPro, previewHtml, profile, quote, quoteId, router, settings]);
+
+  // Web-only: Send email via mailto link
+  const handleWebSendEmail = useCallback(() => {
+    if (Platform.OS !== "web") return;
+
+    if (!quote) {
+      Alert.alert("Error", "Quote data not loaded");
+      return;
+    }
+
+    const clientEmail = quote.client_email;
+    if (!clientEmail) {
+      Alert.alert("Missing email", "Client email is not set on this quote.");
+      return;
+    }
+
+    const selectedVar = quote.variants.find(v => v.type === quote.selected_variant);
+    const total = selectedVar?.total ?? 0;
+    const formattedTotal = total.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    const subject = encodeURIComponent("Your Fence Quote");
+    const body = encodeURIComponent(
+      `Hi ${quote.client_name},\n\n` +
+      `Thank you for your interest in our fencing services.\n\n` +
+      `Your quote total is ${currencySymbol}${formattedTotal} (${quote.selected_variant} option).\n\n` +
+      `Please let us know if you have any questions or would like to proceed.\n\n` +
+      `Best regards,\n${profile?.company_name ?? "Your Fence Company"}\n${profile?.phone ?? ""}`
+    );
+
+    const mailtoUrl = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
+
+    if (Platform.OS === "web") {
+      window.open(mailtoUrl, "_self");
+    } else {
+      Linking.openURL(mailtoUrl);
+    }
+  }, [currencySymbol, profile, quote]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Initial paywall check when entitlements become ready
+  useEffect(() => {
+    if (!isEntitlementsReady || paywallCheckedRef.current || loading) return;
+    paywallCheckedRef.current = true;
+
+    // Pro users can always proceed
+    if (isPro) return;
+
+    // Check free limit for non-pro users
+    (async () => {
+      const { data, error } = await supabase.rpc("sent_quotes_this_month");
+      if (error) return; // fail open
+      const sentCount = Number(data ?? 0);
+      if (sentCount >= 3) {
+        router.replace({
+          pathname: "/(app)/paywall",
+          params: { returnTo: "pdfPreview", quoteId: quoteId ?? "" },
+        });
+      }
+    })();
+  }, [isEntitlementsReady, isPro, loading, quoteId]);
 
   if (loading) {
     return (
@@ -410,59 +565,136 @@ export default function PdfPreviewScreen() {
               </Text>
             </View>
           )}
+
+          {!isPdfGenerationAvailable() && (
+            <View className="mt-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+              <Text className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+                Expo Go Mode
+              </Text>
+              <Text className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                PDF generation requires a development build. You can preview the quote as HTML.
+              </Text>
+            </View>
+          )}
         </View>
+
+        {/* HTML Preview (when PDF not available) */}
+        {showPreview && previewHtml && (
+          <View className="mb-4">
+            <View className="flex-row justify-between items-center mb-2">
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white">
+                Quote Preview
+              </Text>
+              <Pressable onPress={() => setShowPreview(false)}>
+                <Text className="text-blue-600 dark:text-blue-400">Hide</Text>
+              </Pressable>
+            </View>
+            <View className="h-96 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+              {Platform.OS === "web" ? (
+                <iframe
+                  srcDoc={previewHtml}
+                  style={{ width: "100%", height: "100%", border: "none" }}
+                  title="Quote Preview"
+                />
+              ) : WebView ? (
+                <WebView
+                  source={{ html: previewHtml }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                />
+              ) : (
+                <View className="flex-1 items-center justify-center">
+                  <Text className="text-gray-500 dark:text-gray-400">
+                    Preview not available
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Action Buttons */}
         <View className="gap-3 mb-6">
-          <Pressable
-            className={`rounded-lg py-4 px-4 ${
-              busy ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
-            }`}
-            onPress={handleGenerate}
-            disabled={busy}
-          >
-            <Text className="text-white text-center font-semibold text-lg">
-              {pdfPath ? "Regenerate PDF" : "Generate PDF"}
-            </Text>
-          </Pressable>
+          {Platform.OS === "web" ? (
+            /* Web: Download PDF via browser print - Primary */
+            <Pressable
+              className={`rounded-lg items-center justify-center ${
+                busy ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+              }`}
+              style={{ height: 48 }}
+              onPress={handleWebDownloadPdf}
+              disabled={busy}
+            >
+              <Text className="text-white text-center font-semibold text-base">
+                Download PDF
+              </Text>
+            </Pressable>
+          ) : (
+            /* Native: Generate PDF via react-native-html-to-pdf - Primary */
+            <Pressable
+              className={`rounded-lg items-center justify-center ${
+                busy ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+              }`}
+              style={{ height: 48 }}
+              onPress={handleGenerate}
+              disabled={busy}
+            >
+              <Text className="text-white text-center font-semibold text-base">
+                {pdfPath ? "Regenerate PDF" : "Generate PDF"}
+              </Text>
+            </Pressable>
+          )}
 
-          <Pressable
-            className={`rounded-lg py-4 px-4 ${
-              busy || !pdfPath ? "bg-green-400" : "bg-green-600 active:bg-green-700"
-            }`}
-            onPress={handleSendEmail}
-            disabled={busy || !pdfPath}
-          >
-            <Text className="text-white text-center font-semibold text-lg">
-              Send Email
-            </Text>
-          </Pressable>
+          {Platform.OS === "web" ? (
+            /* Web: Send email via mailto link - Secondary */
+            <Pressable
+              className={`rounded-lg items-center justify-center border ${
+                busy ? "border-gray-200 dark:border-gray-700" : "border-gray-300 dark:border-gray-600"
+              }`}
+              style={{ height: 48 }}
+              onPress={handleWebSendEmail}
+              disabled={busy}
+            >
+              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium text-base">
+                Send Email
+              </Text>
+            </Pressable>
+          ) : (
+            /* Native: Send via Edge Function - Secondary */
+            <Pressable
+              className={`rounded-lg items-center justify-center border ${
+                busy || !pdfPath ? "border-gray-200 dark:border-gray-700" : "border-gray-300 dark:border-gray-600"
+              }`}
+              style={{ height: 48 }}
+              onPress={handleSendEmail}
+              disabled={busy || !pdfPath}
+            >
+              <Text className={`text-center font-medium text-base ${
+                busy || !pdfPath ? "text-gray-400 dark:text-gray-600" : "text-gray-700 dark:text-gray-300"
+              }`}>
+                Send Email
+              </Text>
+            </Pressable>
+          )}
 
-          <Pressable
-            className={`rounded-lg py-4 px-4 ${
-              busy || !pdfPath ? "bg-purple-400" : "bg-purple-600 active:bg-purple-700"
-            }`}
-            onPress={handleSendSms}
-            disabled={busy || !pdfPath}
-          >
-            <Text className="text-white text-center font-semibold text-lg">
-              Send SMS
-            </Text>
-          </Pressable>
-
-          <Pressable
-            className={`rounded-lg py-3 px-4 border ${
-              busy
-                ? "border-gray-200 dark:border-gray-700"
-                : "border-gray-300 dark:border-gray-600 active:bg-gray-100 dark:active:bg-gray-800"
-            }`}
-            onPress={handleShare}
-            disabled={busy}
-          >
-            <Text className="text-gray-700 dark:text-gray-300 text-center font-medium">
-              Share
-            </Text>
-          </Pressable>
+          {/* Share button - native only - Secondary */}
+          {Platform.OS !== "web" && (
+            <Pressable
+              className={`rounded-lg items-center justify-center border ${
+                busy
+                  ? "border-gray-200 dark:border-gray-700"
+                  : "border-gray-300 dark:border-gray-600 active:bg-gray-100 dark:active:bg-gray-800"
+              }`}
+              style={{ height: 48 }}
+              onPress={handleShare}
+              disabled={busy}
+            >
+              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium text-base">
+                Share
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Loading Indicator */}

@@ -1,11 +1,39 @@
 // hooks/useEntitlements.ts
+// RevenueCat integration for subscription management
+// NOTE: In Expo Go, native modules are unavailable — hook returns mock data.
+// Full functionality requires development build (eas build --profile development)
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Platform } from "react-native";
-import Purchases, {
-    CustomerInfo,
-    PurchasesOfferings,
-    PurchasesPackage,
-} from "react-native-purchases";
+
+// Dynamic import for RevenueCat (native module, not available in Expo Go)
+type CustomerInfo = { entitlements?: { active?: Record<string, unknown> } };
+type PurchasesOfferings = { current?: unknown; availablePackages?: unknown[] };
+type PurchasesPackage = unknown;
+
+let Purchases: {
+  configure: (opts: { apiKey: string }) => void;
+  logIn: (userId: string) => Promise<void>;
+  setEmail: (email: string) => Promise<void>;
+  getCustomerInfo: () => Promise<CustomerInfo>;
+  getOfferings: () => Promise<PurchasesOfferings>;
+  purchasePackage: (pkg: PurchasesPackage) => Promise<{ customerInfo: CustomerInfo }>;
+  restorePurchases: () => Promise<CustomerInfo>;
+} | null = null;
+
+let revenueCatAvailable = false;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Purchases = require("react-native-purchases").default;
+  revenueCatAvailable = true;
+} catch {
+  console.warn("[useEntitlements] react-native-purchases not available. Using mock mode.");
+}
+
+export function isRevenueCatAvailable(): boolean {
+  return revenueCatAvailable;
+}
 
 type EntitlementsState = {
   isReady: boolean;
@@ -40,6 +68,19 @@ export function useEntitlements(params: {
   }, [revenueCatAndroidApiKey, revenueCatIosApiKey]);
 
   const refresh = useCallback(async () => {
+    // Mock mode when RevenueCat not available
+    if (!Purchases) {
+      setState({
+        isReady: true,
+        isPro: false,
+        customerInfo: null,
+        offerings: null,
+        activeEntitlementIds: [],
+        errorMessage: "RevenueCat not available (Expo Go mode)",
+      });
+      return;
+    }
+
     try {
       const [info, offerings] = await Promise.all([
         Purchases.getCustomerInfo(),
@@ -67,6 +108,10 @@ export function useEntitlements(params: {
   }, []);
 
   const purchasePackage = useCallback(async (pkg: PurchasesPackage) => {
+    if (!Purchases) {
+      throw new Error("Purchases not available (Expo Go mode). Use a development build.");
+    }
+
     const { customerInfo } = await Purchases.purchasePackage(pkg);
 
     const active = customerInfo.entitlements?.active ?? {};
@@ -84,6 +129,10 @@ export function useEntitlements(params: {
   }, []);
 
   const restore = useCallback(async () => {
+    if (!Purchases) {
+      throw new Error("Purchases not available (Expo Go mode). Use a development build.");
+    }
+
     const info = await Purchases.restorePurchases();
     const active = info.entitlements?.active ?? {};
     const activeIds = Object.keys(active);
@@ -102,6 +151,19 @@ export function useEntitlements(params: {
     let cancelled = false;
 
     async function init() {
+      // Mock mode when RevenueCat not available (Expo Go)
+      if (!Purchases) {
+        setState({
+          isReady: true,
+          isPro: false,
+          customerInfo: null,
+          offerings: null,
+          activeEntitlementIds: [],
+          errorMessage: "RevenueCat not available (Expo Go mode)",
+        });
+        return;
+      }
+
       if (!apiKey) return;
 
       try {

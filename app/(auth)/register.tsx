@@ -92,15 +92,20 @@ export default function RegisterScreen() {
         className="flex-1"
       >
         <ScrollView
-          className="flex-grow justify-center px-6 py-8"
+          className="flex-grow"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
         >
+          <View
+            className="px-6 py-8"
+            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+          >
           {/* Header */}
-          <View className="mb-8">
-            <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center">
+          <View className="mb-6">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center">
               Create Account
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-center mt-2">
+            <Text className="text-gray-500 dark:text-gray-400 text-center mt-2 text-base">
               Start quoting fences in minutes
             </Text>
           </View>
@@ -111,11 +116,12 @@ export default function RegisterScreen() {
               Email
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.email
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="you@example.com"
               placeholderTextColor="#9ca3af"
               value={email}
@@ -137,11 +143,12 @@ export default function RegisterScreen() {
               Password
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.password
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="At least 8 characters"
               placeholderTextColor="#9ca3af"
               value={password}
@@ -165,11 +172,12 @@ export default function RegisterScreen() {
               Confirm Password
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.confirmPassword
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="Confirm your password"
               placeholderTextColor="#9ca3af"
               value={confirmPassword}
@@ -187,11 +195,12 @@ export default function RegisterScreen() {
             )}
           </View>
 
-          {/* Register Button */}
+          {/* Register Button - Primary */}
           <Pressable
-            className={`rounded-lg py-3 px-4 mb-4 ${
+            className={`rounded-lg mb-4 items-center justify-center ${
               isButtonDisabled ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
             }`}
+            style={{ height: 48 }}
             onPress={handleRegister}
             disabled={isButtonDisabled}
           >
@@ -213,10 +222,11 @@ export default function RegisterScreen() {
             <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
           </View>
 
-          {/* Social Sign Up Buttons */}
+          {/* Social Sign Up Buttons - Secondary */}
           <View className="flex-row gap-3 mb-6">
             <Pressable
-              className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+              className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+              style={{ height: 48 }}
               onPress={handleGoogleRegister}
               disabled={isButtonDisabled}
             >
@@ -227,7 +237,8 @@ export default function RegisterScreen() {
 
             {Platform.OS === "ios" && (
               <Pressable
-                className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+                className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+                style={{ height: 48 }}
                 onPress={handleAppleRegister}
                 disabled={isButtonDisabled}
               >
@@ -240,12 +251,12 @@ export default function RegisterScreen() {
 
           {/* Login Link */}
           <View className="flex-row justify-center">
-            <Text className="text-gray-600 dark:text-gray-400">
+            <Text className="text-gray-500 dark:text-gray-400 text-base">
               Already have an account?{" "}
             </Text>
             <Link href="./login" asChild>
               <Pressable>
-                <Text className="text-blue-600 dark:text-blue-400 font-semibold">
+                <Text className="text-blue-600 dark:text-blue-400 font-semibold text-base">
                   Sign In
                 </Text>
               </Pressable>
@@ -253,10 +264,11 @@ export default function RegisterScreen() {
           </View>
 
           {/* Terms */}
-          <Text className="text-xs text-gray-500 dark:text-gray-400 text-center mt-6">
+          <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mt-6">
             By creating an account, you agree to our Terms of Service and
             Privacy Policy.
           </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

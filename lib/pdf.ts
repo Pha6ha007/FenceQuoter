@@ -1,5 +1,29 @@
 // lib/pdf.ts
-import { generatePDF } from "react-native-html-to-pdf";
+// PDF generation requires development build (eas build --profile development)
+// In Expo Go, native modules are unavailable — we return HTML for WebView preview instead.
+
+import { Platform } from "react-native";
+
+// Dynamic import for native-only library (not available in Expo Go)
+type GeneratePDFFunc = (options: { html: string; fileName: string; base64: boolean }) => Promise<{ filePath?: string } | null>;
+let generatePDF: GeneratePDFFunc | null = null;
+let pdfModuleAvailable = false;
+
+if (Platform.OS !== "web") {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfModule = require("react-native-html-to-pdf");
+    generatePDF = pdfModule.generatePDF;
+    pdfModuleAvailable = true;
+  } catch {
+    // Module not available (Expo Go) — will use HTML fallback
+    console.warn("[pdf] react-native-html-to-pdf not available. Using HTML preview mode.");
+  }
+}
+
+export function isPdfGenerationAvailable(): boolean {
+  return pdfModuleAvailable && Platform.OS !== "web";
+}
 
 export type VariantType = "budget" | "standard" | "premium";
 
@@ -58,8 +82,9 @@ export interface QuotePdfInput {
 }
 
 export interface GeneratePdfResult {
-  filePath: string;  // local pdf file uri/path
-  fileName: string;  // e.g. FenceQuoter-Quote-<id>.pdf
+  filePath: string | null;  // local pdf file uri/path (null if PDF module unavailable)
+  fileName: string;         // e.g. FenceQuoter-Quote-<id>.pdf
+  html: string;             // HTML content for WebView fallback
 }
 
 export async function generateQuotePdf(input: QuotePdfInput): Promise<GeneratePdfResult> {
@@ -72,18 +97,32 @@ export async function generateQuotePdf(input: QuotePdfInput): Promise<GeneratePd
     variant,
   });
 
-  const options = {
-    html,
-    fileName: fileName.replace(/\.pdf$/i, ""),
-    base64: false,
-  };
-
-  const res = await generatePDF(options);
-  if (!res?.filePath) {
-    throw new Error("PDF generation failed");
+  // Web platform or Expo Go: return HTML for WebView preview (PDF module unavailable)
+  if (Platform.OS === "web" || !generatePDF || !pdfModuleAvailable) {
+    return { filePath: null, fileName, html };
   }
 
-  return { filePath: res.filePath, fileName };
+  // Native with PDF module available
+  try {
+    const options = {
+      html,
+      fileName: fileName.replace(/\.pdf$/i, ""),
+      base64: false,
+    };
+
+    const res = await generatePDF(options);
+    if (!res?.filePath) {
+      // Fallback to HTML if PDF generation fails
+      console.warn("[pdf] PDF generation returned no filePath, using HTML fallback");
+      return { filePath: null, fileName, html };
+    }
+
+    return { filePath: res.filePath, fileName, html };
+  } catch (error) {
+    // Fallback to HTML on error
+    console.warn("[pdf] PDF generation failed, using HTML fallback:", error);
+    return { filePath: null, fileName, html };
+  }
 }
 
 // -------------------- HTML builder --------------------

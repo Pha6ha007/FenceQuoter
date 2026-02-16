@@ -50,16 +50,16 @@ export default function PaywallScreen() {
     // Typical RevenueCat naming:
     // offering.monthly / offering.annual might exist; otherwise scan packages
     if (!offering) return null;
-    const direct = (offering as any).monthly;
-    if (direct) return direct;
-    return offering.availablePackages.find((p) => p.packageType === "MONTHLY") ?? null;
+    const off = offering as { monthly?: unknown; annual?: unknown; availablePackages?: Array<{ packageType: string }> };
+    if (off.monthly) return off.monthly;
+    return off.availablePackages?.find((p) => p.packageType === "MONTHLY") ?? null;
   }, [offering]);
 
   const annualPkg = useMemo(() => {
     if (!offering) return null;
-    const direct = (offering as any).annual;
-    if (direct) return direct;
-    return offering.availablePackages.find((p) => p.packageType === "ANNUAL") ?? null;
+    const off = offering as { monthly?: unknown; annual?: unknown; availablePackages?: Array<{ packageType: string }> };
+    if (off.annual) return off.annual;
+    return off.availablePackages?.find((p) => p.packageType === "ANNUAL") ?? null;
   }, [offering]);
 
   const loadUserAndCount = useCallback(async () => {
@@ -165,13 +165,13 @@ export default function PaywallScreen() {
 
       <View className="mt-5 gap-3">
         <Btn
-          title={annualPkg ? `${annualPkg.product.title}` : "$39/month (billed yearly)"}
+          title={annualPkg ? `${(annualPkg as { product?: { title?: string } }).product?.title ?? "$39/month (billed yearly)"}` : "$39/month (billed yearly)"}
           onPress={() => handlePurchase("annual")}
           disabled={busy || !ent.isReady}
           variant="primary"
         />
         <Btn
-          title={monthlyPkg ? `${monthlyPkg.product.title}` : "$49/month"}
+          title={monthlyPkg ? `${(monthlyPkg as { product?: { title?: string } }).product?.title ?? "$49/month"}` : "$49/month"}
           onPress={() => handlePurchase("monthly")}
           disabled={busy || !ent.isReady}
           variant="secondary"

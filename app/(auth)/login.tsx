@@ -86,15 +86,20 @@ export default function LoginScreen() {
         className="flex-1"
       >
         <ScrollView
-          className="flex-grow justify-center px-6 py-8"
+          className="flex-grow"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
         >
+          <View
+            className="px-6 py-8"
+            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+          >
           {/* Header */}
-          <View className="mb-8">
-            <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center">
+          <View className="mb-6">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center">
               FenceQuoter
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-center mt-2">
+            <Text className="text-gray-500 dark:text-gray-400 text-center mt-2 text-base">
               Sign in to your account
             </Text>
           </View>
@@ -105,11 +110,12 @@ export default function LoginScreen() {
               Email
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.email
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="you@example.com"
               placeholderTextColor="#9ca3af"
               value={email}
@@ -131,11 +137,12 @@ export default function LoginScreen() {
               Password
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.password
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="Your password"
               placeholderTextColor="#9ca3af"
               value={password}
@@ -164,11 +171,12 @@ export default function LoginScreen() {
             </Link>
           </View>
 
-          {/* Login Button */}
+          {/* Login Button - Primary */}
           <Pressable
-            className={`rounded-lg py-3 px-4 mb-4 ${
+            className={`rounded-lg mb-4 items-center justify-center ${
               isButtonDisabled ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
             }`}
+            style={{ height: 48 }}
             onPress={handleLogin}
             disabled={isButtonDisabled}
           >
@@ -190,10 +198,11 @@ export default function LoginScreen() {
             <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
           </View>
 
-          {/* Social Login Buttons */}
+          {/* Social Login Buttons - Secondary */}
           <View className="flex-row gap-3 mb-6">
             <Pressable
-              className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+              className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+              style={{ height: 48 }}
               onPress={handleGoogleLogin}
               disabled={isButtonDisabled}
             >
@@ -204,7 +213,8 @@ export default function LoginScreen() {
 
             {Platform.OS === "ios" && (
               <Pressable
-                className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4 bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+                className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+                style={{ height: 48 }}
                 onPress={handleAppleLogin}
                 disabled={isButtonDisabled}
               >
@@ -217,16 +227,17 @@ export default function LoginScreen() {
 
           {/* Register Link */}
           <View className="flex-row justify-center">
-            <Text className="text-gray-600 dark:text-gray-400">
+            <Text className="text-gray-500 dark:text-gray-400 text-base">
               Don't have an account?{" "}
             </Text>
             <Link href="./register" asChild>
               <Pressable>
-                <Text className="text-blue-600 dark:text-blue-400 font-semibold">
+                <Text className="text-blue-600 dark:text-blue-400 font-semibold text-base">
                   Sign Up
                 </Text>
               </Pressable>
             </Link>
+          </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

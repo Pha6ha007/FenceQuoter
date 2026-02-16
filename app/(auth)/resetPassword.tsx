@@ -62,18 +62,23 @@ export default function ResetPasswordScreen() {
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
         <ScrollView
-          className="flex-grow justify-center px-6 py-8"
+          className="flex-grow"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
         >
+          <View
+            className="px-6 py-8"
+            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+          >
           <View className="items-center">
             {/* Success Icon */}
-            <View className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full items-center justify-center mb-6">
+            <View className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full items-center justify-center mb-6">
               <Text className="text-3xl">✓</Text>
             </View>
 
             <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
               Check Your Email
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-center mb-8">
+            <Text className="text-gray-500 dark:text-gray-400 text-center mb-6 text-base">
               We've sent a password reset link to{"\n"}
               <Text className="font-medium text-gray-700 dark:text-gray-300">
                 {email}
@@ -85,24 +90,26 @@ export default function ResetPasswordScreen() {
             </Text>
 
             <Pressable
-              className="bg-blue-600 rounded-lg py-3 px-6 mb-4 active:bg-blue-700"
+              className="bg-blue-600 rounded-lg mb-4 active:bg-blue-700 items-center justify-center w-full"
+              style={{ height: 48 }}
               onPress={() => {
                 setIsSuccess(false);
                 setEmail("");
               }}
             >
-              <Text className="text-white text-center font-semibold">
+              <Text className="text-white text-center font-semibold text-base">
                 Try Another Email
               </Text>
             </Pressable>
 
             <Link href="./login" asChild>
-              <Pressable>
-                <Text className="text-blue-600 dark:text-blue-400 font-semibold">
+              <Pressable className="items-center justify-center" style={{ height: 48 }}>
+                <Text className="text-blue-600 dark:text-blue-400 font-semibold text-base">
                   Back to Sign In
                 </Text>
               </Pressable>
             </Link>
+          </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -116,9 +123,14 @@ export default function ResetPasswordScreen() {
         className="flex-1"
       >
         <ScrollView
-          className="flex-grow justify-center px-6 py-8"
+          className="flex-grow"
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
         >
+          <View
+            className="px-6 py-8"
+            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+          >
           {/* Back Button */}
           <Pressable
             className="absolute top-4 left-0 p-2"
@@ -130,11 +142,11 @@ export default function ResetPasswordScreen() {
           </Pressable>
 
           {/* Header */}
-          <View className="mb-8">
-            <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center">
+          <View className="mb-6">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center">
               Reset Password
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-center mt-2">
+            <Text className="text-gray-500 dark:text-gray-400 text-center mt-2 text-base">
               Enter your email and we'll send you a link to reset your password
             </Text>
           </View>
@@ -145,11 +157,12 @@ export default function ResetPasswordScreen() {
               Email
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.email
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="you@example.com"
               placeholderTextColor="#9ca3af"
               value={email}
@@ -165,11 +178,12 @@ export default function ResetPasswordScreen() {
             )}
           </View>
 
-          {/* Reset Button */}
+          {/* Reset Button - Primary */}
           <Pressable
-            className={`rounded-lg py-3 px-4 mb-6 ${
+            className={`rounded-lg mb-6 items-center justify-center ${
               isButtonDisabled ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
             }`}
+            style={{ height: 48 }}
             onPress={handleResetPassword}
             disabled={isButtonDisabled}
           >
@@ -184,16 +198,17 @@ export default function ResetPasswordScreen() {
 
           {/* Login Link */}
           <View className="flex-row justify-center">
-            <Text className="text-gray-600 dark:text-gray-400">
+            <Text className="text-gray-500 dark:text-gray-400 text-base">
               Remember your password?{" "}
             </Text>
             <Link href="./login" asChild>
               <Pressable>
-                <Text className="text-blue-600 dark:text-blue-400 font-semibold">
+                <Text className="text-blue-600 dark:text-blue-400 font-semibold text-base">
                   Sign In
                 </Text>
               </Pressable>
             </Link>
+          </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

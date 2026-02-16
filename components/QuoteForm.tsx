@@ -92,11 +92,12 @@ export default function QuoteForm({
           Client Name *
         </Text>
         <TextInput
-          className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+          className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
             errors.client_name
               ? "border-red-500"
               : "border-gray-300 dark:border-gray-600"
           }`}
+          style={{ height: 48 }}
           placeholder="John Smith"
           placeholderTextColor="#9ca3af"
           value={clientInfo.client_name}
@@ -116,11 +117,12 @@ export default function QuoteForm({
             Phone
           </Text>
           <TextInput
-            className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+            className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               errors.client_phone
                 ? "border-red-500"
                 : "border-gray-300 dark:border-gray-600"
             }`}
+            style={{ height: 48 }}
             placeholder="(555) 123-4567"
             placeholderTextColor="#9ca3af"
             value={clientInfo.client_phone}
@@ -137,11 +139,12 @@ export default function QuoteForm({
             Email
           </Text>
           <TextInput
-            className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+            className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               errors.client_email
                 ? "border-red-500"
                 : "border-gray-300 dark:border-gray-600"
             }`}
+            style={{ height: 48 }}
             placeholder="email@example.com"
             placeholderTextColor="#9ca3af"
             value={clientInfo.client_email}
@@ -162,7 +165,8 @@ export default function QuoteForm({
           Address
         </Text>
         <TextInput
-          className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          style={{ height: 48 }}
           placeholder="123 Main St, City, State"
           placeholderTextColor="#9ca3af"
           value={clientInfo.client_address}
@@ -217,11 +221,12 @@ export default function QuoteForm({
             Length (ft) *
           </Text>
           <TextInput
-            className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+            className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
               errors.length
                 ? "border-red-500"
                 : "border-gray-300 dark:border-gray-600"
             }`}
+            style={{ height: 48 }}
             placeholder="100"
             placeholderTextColor="#9ca3af"
             value={fenceInputs.length ? String(fenceInputs.length) : ""}
@@ -349,7 +354,7 @@ export default function QuoteForm({
           Notes
         </Text>
         <TextInput
-          className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
           placeholder="Additional notes..."
           placeholderTextColor="#9ca3af"
           value={fenceInputs.notes ?? ""}
@@ -379,9 +384,10 @@ interface StepperProps {
 
 function Stepper({ value, onChange, min = 0, max = 99, disabled = false }: StepperProps) {
   return (
-    <View className="flex-row items-center border border-gray-300 dark:border-gray-600 rounded-lg">
+    <View className="flex-row items-center border border-gray-300 dark:border-gray-600 rounded-lg" style={{ height: 48 }}>
       <Pressable
-        className="px-4 py-3"
+        className="px-4 items-center justify-center"
+        style={{ height: 46 }}
         onPress={() => onChange(Math.max(min, value - 1))}
         disabled={disabled || value <= min}
       >
@@ -399,7 +405,8 @@ function Stepper({ value, onChange, min = 0, max = 99, disabled = false }: Stepp
         {value}
       </Text>
       <Pressable
-        className="px-4 py-3"
+        className="px-4 items-center justify-center"
+        style={{ height: 46 }}
         onPress={() => onChange(Math.min(max, value + 1))}
         disabled={disabled || value >= max}
       >

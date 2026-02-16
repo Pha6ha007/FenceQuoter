@@ -188,32 +188,36 @@ export default function ResultsScreen() {
         {/* Actions */}
         {!isReadOnly && (
           <View className="gap-3 mb-6">
+            {/* Primary button */}
             <Pressable
-              className={`rounded-lg py-4 px-4 ${
+              className={`rounded-lg items-center justify-center ${
                 isSaving ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
               }`}
+              style={{ height: 48 }}
               onPress={handleGeneratePDF}
               disabled={isSaving}
             >
               {isSaving ? (
                 <View className="flex-row items-center justify-center">
                   <ActivityIndicator color="white" />
-                  <Text className="text-white font-semibold text-lg ml-2">
+                  <Text className="text-white font-semibold text-base ml-2">
                     Saving...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-white text-center font-semibold text-lg">
+                <Text className="text-white text-center font-semibold text-base">
                   Generate PDF →
                 </Text>
               )}
             </Pressable>
 
+            {/* Secondary button */}
             <Pressable
-              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg items-center justify-center"
+              style={{ height: 48 }}
               onPress={handleEditQuote}
             >
-              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium">
+              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium text-base">
                 Edit Quote
               </Text>
             </Pressable>
@@ -223,20 +227,24 @@ export default function ResultsScreen() {
         {/* Read-only actions */}
         {isReadOnly && (
           <View className="gap-3 mb-6">
+            {/* Primary button */}
             <Pressable
-              className="bg-blue-600 rounded-lg py-4 px-4 active:bg-blue-700"
+              className="bg-blue-600 rounded-lg active:bg-blue-700 items-center justify-center"
+              style={{ height: 48 }}
               onPress={handleGeneratePDF}
             >
-              <Text className="text-white text-center font-semibold text-lg">
+              <Text className="text-white text-center font-semibold text-base">
                 View PDF
               </Text>
             </Pressable>
 
+            {/* Secondary button */}
             <Pressable
-              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg py-3 px-4"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg items-center justify-center"
+              style={{ height: 48 }}
               onPress={() => router.push("./history")}
             >
-              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium">
+              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium text-base">
                 Back to History
               </Text>
             </Pressable>

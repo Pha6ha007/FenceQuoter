@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -179,7 +180,11 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
-      <ScrollView className="p-4" keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+        <View
+          className="p-4"
+          style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+        >
         {/* Company Section */}
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Company
@@ -190,7 +195,8 @@ export default function SettingsScreen() {
               Company Name
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ height: 48 }}
               value={companyName}
               onChangeText={handleCompanyNameChange}
               placeholder="Enter company name"
@@ -202,7 +208,8 @@ export default function SettingsScreen() {
               Phone
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ height: 48 }}
               placeholder="(555) 123-4567"
               placeholderTextColor="#9ca3af"
               value={phone}
@@ -222,7 +229,8 @@ export default function SettingsScreen() {
               Hourly Labor Rate ({currencySymbol})
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ height: 48 }}
               value={hourlyRate}
               onChangeText={handleHourlyRateChange}
               keyboardType="decimal-pad"
@@ -235,7 +243,8 @@ export default function SettingsScreen() {
               Default Markup (%)
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ height: 48 }}
               value={defaultMarkup}
               onChangeText={handleMarkupChange}
               keyboardType="decimal-pad"
@@ -248,25 +257,27 @@ export default function SettingsScreen() {
               Sales Tax (%)
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ height: 48 }}
               value={taxPercent}
               onChangeText={handleTaxChange}
               keyboardType="decimal-pad"
               placeholder="0"
               placeholderTextColor="#9ca3af"
             />
-            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Sales tax percentage if applicable
             </Text>
           </View>
         </View>
 
-        {/* Save Button */}
+        {/* Save Button - Primary */}
         {isDirty && (
           <Pressable
-            className={`rounded-xl py-4 px-4 mb-6 ${
+            className={`rounded-lg mb-6 items-center justify-center ${
               isSaving ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
             }`}
+            style={{ height: 48 }}
             onPress={handleSave}
             disabled={isSaving}
           >
@@ -368,6 +379,7 @@ export default function SettingsScreen() {
           <Text className="text-xs text-gray-400 dark:text-gray-500 mt-4">
             support@fencequoter.app
           </Text>
+        </View>
         </View>
       </ScrollView>
     </SafeAreaView>

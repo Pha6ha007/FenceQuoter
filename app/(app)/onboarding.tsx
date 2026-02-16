@@ -12,13 +12,15 @@ import {
   ScrollView,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuthContext } from "@/contexts/AuthContext";
 import { REGIONAL_DEFAULTS } from "@/constants/defaults";
-import type { RegionCode } from "@/types/quote";
+import { supabase } from "@/lib/supabase";
+import type { RegionCode, UnitSystem } from "@/types/quote";
 
 const REGIONS: { code: RegionCode; label: string }[] = [
   { code: "US", label: "United States" },
@@ -51,6 +53,9 @@ export default function OnboardingScreen() {
   };
 
   const handleSubmit = async () => {
+    console.log("[onboarding] handleSubmit called");
+    console.log("[onboarding] companyName:", companyName, "phone:", phone, "hourlyRate:", hourlyRate);
+
     setErrors({});
     const newErrors: Record<string, string> = {};
 
@@ -65,27 +70,79 @@ export default function OnboardingScreen() {
     }
 
     if (Object.keys(newErrors).length > 0) {
+      console.log("[onboarding] Validation failed:", newErrors);
       setErrors(newErrors);
       return;
     }
 
+    console.log("[onboarding] Validation passed, submitting...");
     setIsSubmitting(true);
 
+    const userId = user?.id;
+    if (!userId) {
+      Alert.alert("Error", "User not authenticated");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      // TODO: Implement profile + settings creation + seed materials
-      // For now, this is a placeholder that navigates to history
-      Alert.alert(
-        "Coming Soon",
-        "Profile creation will be implemented in the next phase.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("./history"),
-          },
-        ]
+      // 1. Create/update profile
+      console.log("[onboarding] Creating profile...");
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        {
+          id: userId,
+          company_name: companyName.trim(),
+          phone: phone.trim(),
+          email: user.email ?? "",
+          region,
+          currency: selectedRegion.currency,
+          unit_system: selectedRegion.unit_system as UnitSystem,
+        },
+        { onConflict: "id" }
       );
+
+      if (profileError) {
+        console.error("[onboarding] Profile error:", profileError);
+        Alert.alert("Error", `Failed to save profile: ${profileError.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. Create/update settings
+      console.log("[onboarding] Creating settings...");
+      const { error: settingsError } = await supabase.from("settings").upsert(
+        {
+          user_id: userId,
+          hourly_rate: parseFloat(hourlyRate) || 45,
+          default_markup_percent: parseFloat(defaultMarkup) || 20,
+          tax_percent: parseFloat(taxPercent) || 0,
+          terms_template: "Quote valid for 30 days. 50% deposit required to begin work. Balance due upon completion.",
+        },
+        { onConflict: "user_id" }
+      );
+
+      if (settingsError) {
+        console.error("[onboarding] Settings error:", settingsError);
+        Alert.alert("Error", `Failed to save settings: ${settingsError.message}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 3. Seed materials
+      console.log("[onboarding] Seeding materials...");
+      const { error: seedError } = await supabase.rpc("seed_materials_for_user");
+
+      if (seedError) {
+        console.error("[onboarding] Seed materials error:", seedError);
+        // Don't block on seed error, just log it
+        console.warn("[onboarding] Materials seeding failed, continuing anyway");
+      }
+
+      console.log("[onboarding] Success! Navigating to history...");
+      router.replace("./history");
     } catch (e) {
-      Alert.alert("Error", "Failed to save profile");
+      console.error("[onboarding] Unexpected error:", e);
+      Alert.alert("Error", "Failed to save profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -98,15 +155,19 @@ export default function OnboardingScreen() {
         className="flex-1"
       >
         <ScrollView
-          className="p-6"
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
         >
+          <View
+            className="p-6"
+            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+          >
           {/* Header */}
-          <View className="mb-8">
-            <Text className="text-3xl font-bold text-gray-900 dark:text-white">
+          <View className="mb-6">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white">
               Welcome to FenceQuoter
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 mt-2">
+            <Text className="text-gray-500 dark:text-gray-400 mt-2 text-base">
               Let's set up your company profile
             </Text>
           </View>
@@ -117,11 +178,12 @@ export default function OnboardingScreen() {
               Company Name *
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.companyName
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="Your Fence Company"
               placeholderTextColor="#9ca3af"
               value={companyName}
@@ -142,11 +204,12 @@ export default function OnboardingScreen() {
               Phone Number *
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.phone
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="(555) 123-4567"
               placeholderTextColor="#9ca3af"
               value={phone}
@@ -188,7 +251,7 @@ export default function OnboardingScreen() {
                 </Pressable>
               ))}
             </View>
-            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Currency: {selectedRegion.symbol} ({selectedRegion.currency}) •
               Units: {selectedRegion.unit_system}
             </Text>
@@ -200,11 +263,12 @@ export default function OnboardingScreen() {
               Hourly Labor Rate ({selectedRegion.symbol}) *
             </Text>
             <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
                 errors.hourlyRate
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
               }`}
+              style={{ height: 48 }}
               placeholder="45"
               placeholderTextColor="#9ca3af"
               value={hourlyRate}
@@ -225,7 +289,8 @@ export default function OnboardingScreen() {
               Default Markup (%)
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ height: 48 }}
               placeholder="20"
               placeholderTextColor="#9ca3af"
               value={defaultMarkup}
@@ -241,7 +306,8 @@ export default function OnboardingScreen() {
               Sales Tax (%)
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              style={{ height: 48 }}
               placeholder="0"
               placeholderTextColor="#9ca3af"
               value={taxPercent}
@@ -249,27 +315,33 @@ export default function OnboardingScreen() {
               keyboardType="decimal-pad"
               editable={!isSubmitting}
             />
-            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Add sales tax if applicable in your region
             </Text>
           </View>
 
-          {/* Submit Button */}
-          <Pressable
-            className={`rounded-lg py-4 px-4 ${
-              isSubmitting ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+          {/* Submit Button - Primary */}
+          <TouchableOpacity
+            className={`rounded-lg items-center justify-center ${
+              isSubmitting ? "bg-blue-400" : "bg-blue-600"
             }`}
-            onPress={handleSubmit}
+            style={{ height: 48 }}
+            onPress={() => {
+              console.log("BUTTON PRESSED");
+              handleSubmit();
+            }}
             disabled={isSubmitting}
+            activeOpacity={0.7}
           >
             {isSubmitting ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white text-center font-semibold text-lg">
+              <Text className="text-white text-center font-semibold text-base">
                 Start Quoting →
               </Text>
             )}
-          </Pressable>
+          </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -50,6 +50,13 @@ export default function VariantCard({
           ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
           : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
       }`}
+      style={isSelected ? {
+        shadowColor: "#2563eb",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
+      } : undefined}
       onPress={() => {
         onSelect(variant.type);
         onToggleExpand(variant.type);
@@ -68,8 +75,8 @@ export default function VariantCard({
             {VARIANT_LABELS[variant.type]}
           </Text>
           {isRecommended && (
-            <View className="ml-2 bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded">
-              <Text className="text-xs text-green-700 dark:text-green-300 font-medium">
+            <View className="ml-2 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded">
+              <Text className="text-xs text-blue-700 dark:text-blue-300 font-medium">
                 Recommended
               </Text>
             </View>
