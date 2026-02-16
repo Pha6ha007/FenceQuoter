@@ -19,21 +19,17 @@ import { QuoteList } from "@/components/QuoteListItem";
 import { useAuthContext } from "@/contexts/AuthContext";
 import {
   useQuotes,
-  filterByStatus,
-  getQuoteCountsByStatus,
+  filterByTab,
+  getTabCounts,
   canEditQuote,
 } from "@/hooks/useQuotes";
 import type { Quote } from "@/types/database";
-import type { QuoteStatus } from "@/types/quote";
-
-type FilterTab = QuoteStatus | "all";
+type FilterTab = "active" | "sent" | "closed";
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "draft", label: "Draft" },
+  { key: "active", label: "Active" },
   { key: "sent", label: "Sent" },
-  { key: "accepted", label: "Accepted" },
-  { key: "rejected", label: "Rejected" },
+  { key: "closed", label: "Closed" },
 ];
 
 export default function HistoryScreen() {
@@ -47,18 +43,18 @@ export default function HistoryScreen() {
     deleteQuote,
   } = useQuotes(userId);
 
-  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("active");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Filter quotes by status
+  // Filter quotes by tab
   const filteredQuotes = useMemo(
-    () => filterByStatus(quotes, activeFilter),
+    () => filterByTab(quotes, activeFilter),
     [quotes, activeFilter]
   );
 
   // Get counts for badges
   const counts = useMemo(
-    () => getQuoteCountsByStatus(quotes),
+    () => getTabCounts(quotes),
     [quotes]
   );
 
@@ -183,19 +179,19 @@ export default function HistoryScreen() {
         >
           {filteredQuotes.length === 0 ? (
             <EmptyState
-              icon={activeFilter === "all" ? "📋" : "🔍"}
+              icon={activeFilter === "active" ? "📋" : "🔍"}
               title={
-                activeFilter === "all"
-                  ? "No Quotes Yet"
+                activeFilter === "active"
+                  ? "No Active Quotes"
                   : `No ${FILTER_TABS.find(t => t.key === activeFilter)?.label} Quotes`
               }
               message={
-                activeFilter === "all"
+                activeFilter === "active"
                   ? "Create your first quote to get started with your fencing business"
-                  : `You don't have any quotes with this status`
+                  : `You don't have any quotes in this category`
               }
-              actionLabel={activeFilter === "all" ? "Create Quote" : undefined}
-              onAction={activeFilter === "all" ? handleNewQuote : undefined}
+              actionLabel={activeFilter === "active" ? "Create Quote" : undefined}
+              onAction={activeFilter === "active" ? handleNewQuote : undefined}
             />
           ) : (
             <QuoteList

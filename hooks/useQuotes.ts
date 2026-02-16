@@ -625,7 +625,54 @@ export function useQuotes(userId: string | null): UseQuotesReturn {
 // ============================================================
 
 /**
- * Filter quotes by status
+ * Filter tabs for history screen
+ */
+export type HistoryTab = "active" | "sent" | "closed";
+
+/**
+ * Filter quotes by tab
+ * - "active": draft + calculated (unsent)
+ * - "sent": sent
+ * - "closed": accepted + rejected
+ */
+export function filterByTab(quotes: Quote[], tab: HistoryTab): Quote[] {
+  switch (tab) {
+    case "active":
+      return quotes.filter((q) => q.status === "draft" || q.status === "calculated");
+    case "sent":
+      return quotes.filter((q) => q.status === "sent");
+    case "closed":
+      return quotes.filter((q) => q.status === "accepted" || q.status === "rejected");
+    default:
+      return quotes;
+  }
+}
+
+/**
+ * Get quotes count by tab
+ */
+export function getTabCounts(quotes: Quote[]): Record<HistoryTab, number> {
+  const counts: Record<HistoryTab, number> = {
+    active: 0,
+    sent: 0,
+    closed: 0,
+  };
+
+  for (const quote of quotes) {
+    if (quote.status === "draft" || quote.status === "calculated") {
+      counts.active++;
+    } else if (quote.status === "sent") {
+      counts.sent++;
+    } else if (quote.status === "accepted" || quote.status === "rejected") {
+      counts.closed++;
+    }
+  }
+
+  return counts;
+}
+
+/**
+ * Filter quotes by status (legacy, kept for compatibility)
  * Note: "draft" tab shows both 'draft' and 'calculated' statuses (both are unsent)
  */
 export function filterByStatus(quotes: Quote[], status: QuoteStatus | "all"): Quote[] {
@@ -638,7 +685,7 @@ export function filterByStatus(quotes: Quote[], status: QuoteStatus | "all"): Qu
 }
 
 /**
- * Get quotes count by status
+ * Get quotes count by status (legacy, kept for compatibility)
  * Note: "draft" count includes both 'draft' and 'calculated' statuses
  */
 export function getQuoteCountsByStatus(
@@ -697,14 +744,18 @@ export function canSendQuote(quote: Quote): boolean {
 
 /**
  * Get status badge color
+ * - Active (draft/calculated) = blue
+ * - Sent = yellow/amber
+ * - Accepted = green
+ * - Rejected = gray
  */
 export function getStatusColor(status: QuoteStatus): string {
   const colors: Record<QuoteStatus, string> = {
-    draft: "#9ca3af", // gray
-    calculated: "#3b82f6", // blue
-    sent: "#f59e0b", // amber
+    draft: "#3b82f6", // blue (active)
+    calculated: "#3b82f6", // blue (active)
+    sent: "#f59e0b", // amber/yellow
     accepted: "#22c55e", // green
-    rejected: "#ef4444", // red
+    rejected: "#9ca3af", // gray
   };
 
   return colors[status] ?? "#9ca3af";
