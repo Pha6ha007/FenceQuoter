@@ -294,7 +294,7 @@ export function useMaterials(userId: string | null): UseMaterialsReturn {
   );
 
   // ============================================================
-  // SEED MATERIALS (call Supabase RPC)
+  // SEED MATERIALS
   // ============================================================
 
   const seedMaterials = useCallback(async (): Promise<{ error: string | null }> => {
@@ -302,10 +302,32 @@ export function useMaterials(userId: string | null): UseMaterialsReturn {
       return { error: "Not authenticated" };
     }
 
+    // Check if materials already exist
+    if (state.materials.length > 0) {
+      return { error: null }; // Already seeded
+    }
+
     setState((prev) => ({ ...prev, isSaving: true, error: null }));
 
     try {
-      const { error } = await supabase.rpc("seed_materials_for_user");
+      // Import default materials
+      const { DEFAULT_MATERIALS } = await import("@/constants/defaults");
+
+      // Insert default materials
+      const materialsWithUserId = DEFAULT_MATERIALS.map((m, index) => ({
+        user_id: userId,
+        fence_type: m.fence_type,
+        name: m.name,
+        unit: m.unit,
+        unit_price: m.unit_price,
+        category: m.category,
+        sort_order: index,
+        is_active: true,
+      }));
+
+      const { error } = await supabase
+        .from("materials")
+        .insert(materialsWithUserId);
 
       if (error) {
         setState((prev) => ({ ...prev, isSaving: false, error: error.message }));
@@ -317,11 +339,11 @@ export function useMaterials(userId: string | null): UseMaterialsReturn {
 
       return { error: null };
     } catch (e) {
-      const errorMsg = "Failed to seed materials";
+      const errorMsg = e instanceof Error ? e.message : "Failed to seed materials";
       setState((prev) => ({ ...prev, isSaving: false, error: errorMsg }));
       return { error: errorMsg };
     }
-  }, [userId, fetchMaterials]);
+  }, [userId, state.materials.length, fetchMaterials]);
 
   // ============================================================
   // RESET TO DEFAULTS
@@ -336,6 +358,14 @@ export function useMaterials(userId: string | null): UseMaterialsReturn {
       setState((prev) => ({ ...prev, isSaving: true, error: null }));
 
       try {
+        // Import default materials
+        const { DEFAULT_MATERIALS } = await import("@/constants/defaults");
+
+        // Filter by fence type if specified
+        const materialsToSeed = fenceType
+          ? DEFAULT_MATERIALS.filter((m) => m.fence_type === fenceType)
+          : DEFAULT_MATERIALS;
+
         // Delete existing materials for the fence type (or all if not specified)
         let deleteQuery = supabase
           .from("materials")
@@ -353,12 +383,25 @@ export function useMaterials(userId: string | null): UseMaterialsReturn {
           return { error: deleteError.message };
         }
 
-        // Re-seed materials
-        const { error: seedError } = await supabase.rpc("seed_materials_for_user");
+        // Insert default materials
+        const materialsWithUserId = materialsToSeed.map((m, index) => ({
+          user_id: userId,
+          fence_type: m.fence_type,
+          name: m.name,
+          unit: m.unit,
+          unit_price: m.unit_price,
+          category: m.category,
+          sort_order: index,
+          is_active: true,
+        }));
 
-        if (seedError) {
-          setState((prev) => ({ ...prev, isSaving: false, error: seedError.message }));
-          return { error: seedError.message };
+        const { error: insertError } = await supabase
+          .from("materials")
+          .insert(materialsWithUserId);
+
+        if (insertError) {
+          setState((prev) => ({ ...prev, isSaving: false, error: insertError.message }));
+          return { error: insertError.message };
         }
 
         // Refresh
@@ -366,7 +409,7 @@ export function useMaterials(userId: string | null): UseMaterialsReturn {
 
         return { error: null };
       } catch (e) {
-        const errorMsg = "Failed to reset materials";
+        const errorMsg = e instanceof Error ? e.message : "Failed to reset materials";
         setState((prev) => ({ ...prev, isSaving: false, error: errorMsg }));
         return { error: errorMsg };
       }

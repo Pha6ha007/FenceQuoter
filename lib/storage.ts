@@ -1,6 +1,7 @@
 // lib/storage.ts
 import { decode } from "base64-arraybuffer";
 import * as FileSystem from "expo-file-system";
+import { Platform } from "react-native";
 
 type SupabaseClient = any;
 
@@ -23,8 +24,25 @@ function guessExtFromUri(uri: string) {
   return ext;
 }
 
-async function readAsArrayBuffer(uri: string) {
-  // Expo FileSystem gives base64
+async function readAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
+  // Web: handle blob URLs and data URLs
+  if (Platform.OS === "web") {
+    // Blob URL (blob:http://...)
+    if (uri.startsWith("blob:")) {
+      const response = await fetch(uri);
+      return await response.arrayBuffer();
+    }
+    // Data URL (data:image/png;base64,...)
+    if (uri.startsWith("data:")) {
+      const base64 = uri.split(",")[1];
+      return decode(base64);
+    }
+    // Regular URL - fetch it
+    const response = await fetch(uri);
+    return await response.arrayBuffer();
+  }
+
+  // Native: use expo-file-system
   const base64 = await FileSystem.readAsStringAsync(uri, {
     encoding: "base64",
   });
