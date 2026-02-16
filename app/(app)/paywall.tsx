@@ -1,27 +1,30 @@
 // app/(app)/paywall.tsx
+// Paywall screen — CLAUDE.md section 4.8
+
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { supabase } from "@/lib/supabase";
 
-function Btn(props: { title: string; onPress: () => void; disabled?: boolean; variant?: "primary" | "secondary" }) {
-  const v = props.variant ?? "primary";
-  const base = "px-4 py-3 rounded-xl";
-  const cls =
-    v === "primary"
-      ? `${base} ${props.disabled ? "bg-zinc-300" : "bg-black"}`
-      : `${base} border border-zinc-300 ${props.disabled ? "opacity-70" : "opacity-100"}`;
+const FREE_QUOTE_LIMIT = 3;
 
-  const textCls = v === "primary" ? "text-white font-bold" : "text-zinc-900 font-bold";
-
-  return (
-    <TouchableOpacity disabled={props.disabled} onPress={props.onPress} className={cls}>
-      <Text className={textCls}>{props.title}</Text>
-    </TouchableOpacity>
-  );
-}
+const PRO_FEATURES = [
+  { icon: "✨", text: "Unlimited sent quotes" },
+  { icon: "📄", text: "No watermark on PDFs" },
+  { icon: "🎨", text: "Custom branding" },
+  { icon: "⚡", text: "Priority support" },
+];
 
 export default function PaywallScreen() {
   const router = useRouter();
@@ -33,7 +36,6 @@ export default function PaywallScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
 
-  // TODO: replace keys with your env injection
   const RC_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? "";
   const RC_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? "";
 
@@ -47,8 +49,6 @@ export default function PaywallScreen() {
   const offering = ent.offerings?.current ?? null;
 
   const monthlyPkg = useMemo(() => {
-    // Typical RevenueCat naming:
-    // offering.monthly / offering.annual might exist; otherwise scan packages
     if (!offering) return null;
     const off = offering as { monthly?: unknown; annual?: unknown; availablePackages?: Array<{ packageType: string }> };
     if (off.monthly) return off.monthly;
@@ -74,7 +74,7 @@ export default function PaywallScreen() {
 
     const { data: cnt, error } = await supabase.rpc("sent_quotes_this_month");
     if (!error) setSentCount(Number(cnt ?? 0));
-    else setSentCount(null);
+    else setSentCount(0);
   }, [router]);
 
   useEffect(() => {
@@ -83,7 +83,6 @@ export default function PaywallScreen() {
 
   useEffect(() => {
     if (ent.isReady && ent.isPro) {
-      // Already pro, bounce back
       if (params.returnTo === "pdfPreview" && params.quoteId) {
         router.replace({ pathname: "/(app)/pdfPreview", params: { quoteId: params.quoteId } });
       } else {
@@ -96,7 +95,7 @@ export default function PaywallScreen() {
     async (kind: "monthly" | "annual") => {
       const pkg = kind === "monthly" ? monthlyPkg : annualPkg;
       if (!pkg) {
-        Alert.alert("Not available", "This package is not configured in RevenueCat yet.");
+        Alert.alert("Not available", "This package is not configured yet. Please try again later.");
         return;
       }
 
@@ -105,14 +104,17 @@ export default function PaywallScreen() {
         await ent.purchasePackage(pkg);
         await ent.refresh();
 
-        Alert.alert("You're Pro", "Subscription active.");
+        Alert.alert("Welcome to Pro!", "Your subscription is now active.");
         if (params.returnTo === "pdfPreview" && params.quoteId) {
           router.replace({ pathname: "/(app)/pdfPreview", params: { quoteId: params.quoteId } });
         } else {
           router.replace("/(app)/history");
         }
-      } catch (e: any) {
-        Alert.alert("Purchase failed", e?.message ?? "Could not complete purchase");
+      } catch (e: unknown) {
+        const error = e as Error;
+        if (!error?.message?.includes("cancel")) {
+          Alert.alert("Purchase failed", error?.message ?? "Could not complete purchase");
+        }
       } finally {
         setBusy(false);
       }
@@ -127,78 +129,188 @@ export default function PaywallScreen() {
       await ent.refresh();
 
       if (ent.isPro) {
-        Alert.alert("Restored", "Purchases restored.");
+        Alert.alert("Restored!", "Your purchases have been restored.");
         if (params.returnTo === "pdfPreview" && params.quoteId) {
           router.replace({ pathname: "/(app)/pdfPreview", params: { quoteId: params.quoteId } });
         } else {
           router.replace("/(app)/history");
         }
       } else {
-        Alert.alert("No active subscription", "We didn't find an active subscription on this account.");
+        Alert.alert("No subscription found", "We couldn't find an active subscription for this account.");
       }
-    } catch (e: any) {
-      Alert.alert("Restore failed", e?.message ?? "Could not restore purchases");
+    } catch (e: unknown) {
+      const error = e as Error;
+      Alert.alert("Restore failed", error?.message ?? "Could not restore purchases");
     } finally {
       setBusy(false);
     }
   }, [ent, params.quoteId, params.returnTo, router]);
 
+  const handleNotNow = useCallback(() => {
+    router.back();
+  }, [router]);
+
+  // Progress bar calculation
+  const usedQuotes = Math.min(sentCount ?? 0, FREE_QUOTE_LIMIT);
+  const progressPercent = (usedQuotes / FREE_QUOTE_LIMIT) * 100;
+
   return (
-    <View className="flex-1 bg-white px-5 pt-6">
-      <Text className="text-3xl font-extrabold">Go Pro</Text>
-
-      <Text className="mt-2 text-zinc-600 text-base">
-        {sentCount === null
-          ? "Unlock unlimited quotes, remove watermark, and enable SMS sending."
-          : `You've sent ${Math.min(sentCount, 3)}/3 free quotes this month.`}
-      </Text>
-
-      <View className="mt-5 rounded-2xl border border-zinc-200 p-4">
-        <Text className="text-base font-bold">Pro includes</Text>
-        <View className="mt-3 gap-2">
-          <Text className="text-zinc-800">• Unlimited sent quotes</Text>
-          <Text className="text-zinc-800">• No watermark on PDFs</Text>
-          <Text className="text-zinc-800">• SMS sending</Text>
-          <Text className="text-zinc-800">• Priority support</Text>
-        </View>
-      </View>
-
-      <View className="mt-5 gap-3">
-        <Btn
-          title={annualPkg ? `${(annualPkg as { product?: { title?: string } }).product?.title ?? "$39/month (billed yearly)"}` : "$39/month (billed yearly)"}
-          onPress={() => handlePurchase("annual")}
-          disabled={busy || !ent.isReady}
-          variant="primary"
-        />
-        <Btn
-          title={monthlyPkg ? `${(monthlyPkg as { product?: { title?: string } }).product?.title ?? "$49/month"}` : "$49/month"}
-          onPress={() => handlePurchase("monthly")}
-          disabled={busy || !ent.isReady}
-          variant="secondary"
-        />
-
-        <Btn
-          title="Restore Purchases"
-          onPress={handleRestore}
-          disabled={busy || !ent.isReady}
-          variant="secondary"
-        />
-      </View>
-
-      <View className="mt-5 flex-row items-center gap-2">
-        {!ent.isReady || busy ? <ActivityIndicator /> : null}
-        <Text className="text-zinc-500 text-sm">
-          {ent.errorMessage ? ent.errorMessage : "Subscriptions handled by Apple/Google. Cancel anytime."}
-        </Text>
-      </View>
-
-      <TouchableOpacity
-        className="mt-auto mb-6 items-center"
-        onPress={() => router.back()}
-        disabled={busy}
+    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text className="text-zinc-700 font-semibold">Not now</Text>
-      </TouchableOpacity>
-    </View>
+        <View
+          className="flex-1 px-6 py-8"
+          style={{
+            maxWidth: Platform.OS === "web" ? 480 : undefined,
+            width: "100%",
+            alignSelf: "center",
+          }}
+        >
+          {/* Crown Icon */}
+          <View className="items-center mb-6">
+            <View className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full items-center justify-center">
+              <Text className="text-5xl">👑</Text>
+            </View>
+          </View>
+
+          {/* Title */}
+          <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-2">
+            Upgrade to Pro
+          </Text>
+          <Text className="text-base text-gray-500 dark:text-gray-400 text-center mb-6">
+            Unlock the full potential of FenceQuoter
+          </Text>
+
+          {/* Progress Bar */}
+          <View className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 mb-6">
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Free quotes this month
+              </Text>
+              <Text className="text-sm font-bold text-gray-900 dark:text-white">
+                {usedQuotes}/{FREE_QUOTE_LIMIT}
+              </Text>
+            </View>
+            <View className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <View
+                className={`h-full rounded-full ${
+                  usedQuotes >= FREE_QUOTE_LIMIT ? "bg-red-500" : "bg-blue-600"
+                }`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </View>
+            {usedQuotes >= FREE_QUOTE_LIMIT && (
+              <Text className="text-sm text-red-600 dark:text-red-400 mt-2">
+                You've reached your free limit. Upgrade to continue sending quotes.
+              </Text>
+            )}
+          </View>
+
+          {/* Pro Features */}
+          <View className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-6 border border-blue-200 dark:border-blue-800">
+            <Text className="text-base font-bold text-gray-900 dark:text-white mb-3">
+              Pro includes:
+            </Text>
+            <View className="gap-3">
+              {PRO_FEATURES.map((feature, index) => (
+                <View key={index} className="flex-row items-center gap-3">
+                  <Text className="text-xl">{feature.icon}</Text>
+                  <Text className="text-base text-gray-800 dark:text-gray-200">
+                    {feature.text}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Pricing Buttons */}
+          <View className="gap-3 mb-4">
+            {/* Annual - Primary */}
+            <Pressable
+              className={`rounded-xl items-center justify-center ${
+                busy ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+              }`}
+              style={{ height: 56 }}
+              onPress={() => handlePurchase("annual")}
+              disabled={busy || !ent.isReady}
+            >
+              <View className="items-center">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-white font-bold text-lg">
+                    $39/month
+                  </Text>
+                  <View className="bg-amber-400 rounded px-2 py-0.5">
+                    <Text className="text-xs font-bold text-amber-900">SAVE 20%</Text>
+                  </View>
+                </View>
+                <Text className="text-blue-200 text-xs">billed yearly ($468)</Text>
+              </View>
+            </Pressable>
+
+            {/* Monthly - Secondary */}
+            <Pressable
+              className={`rounded-xl items-center justify-center border-2 border-gray-300 dark:border-gray-600 ${
+                busy ? "opacity-50" : "active:bg-gray-100 dark:active:bg-gray-800"
+              }`}
+              style={{ height: 48 }}
+              onPress={() => handlePurchase("monthly")}
+              disabled={busy || !ent.isReady}
+            >
+              <Text className="text-gray-900 dark:text-white font-semibold text-base">
+                $49/month
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Restore Purchases - Text Link */}
+          <Pressable
+            className="py-3 items-center"
+            onPress={handleRestore}
+            disabled={busy || !ent.isReady}
+          >
+            <Text className="text-blue-600 dark:text-blue-400 font-medium">
+              Restore Purchases
+            </Text>
+          </Pressable>
+
+          {/* Loading / Error */}
+          {(busy || !ent.isReady) && (
+            <View className="flex-row items-center justify-center gap-2 py-2">
+              <ActivityIndicator size="small" color="#2563eb" />
+              <Text className="text-gray-500 dark:text-gray-400 text-sm">
+                {busy ? "Processing..." : "Loading..."}
+              </Text>
+            </View>
+          )}
+
+          {ent.errorMessage && (
+            <Text className="text-red-600 dark:text-red-400 text-sm text-center py-2">
+              {ent.errorMessage}
+            </Text>
+          )}
+
+          {/* Legal */}
+          <Text className="text-xs text-gray-400 dark:text-gray-500 text-center mt-4 mb-6">
+            Subscriptions are managed by {Platform.OS === "ios" ? "Apple" : Platform.OS === "android" ? "Google" : "your app store"}.
+            Cancel anytime in your account settings.
+          </Text>
+
+          {/* Not Now - Text Link */}
+          <View className="mt-auto pt-4">
+            <Pressable
+              className="py-4 items-center"
+              onPress={handleNotNow}
+              disabled={busy}
+            >
+              <Text className="text-gray-500 dark:text-gray-400 font-medium">
+                Not now
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
