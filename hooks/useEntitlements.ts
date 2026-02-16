@@ -68,15 +68,17 @@ export function useEntitlements(params: {
   }, [revenueCatAndroidApiKey, revenueCatIosApiKey]);
 
   const refresh = useCallback(async () => {
-    // Mock mode when RevenueCat not available
-    if (!Purchases) {
+    // Mock mode when RevenueCat not available or on web
+    if (!Purchases || Platform.OS === "web") {
       setState({
         isReady: true,
         isPro: false,
         customerInfo: null,
         offerings: null,
         activeEntitlementIds: [],
-        errorMessage: "RevenueCat not available (Expo Go mode)",
+        errorMessage: Platform.OS === "web"
+          ? "Subscriptions not available on web"
+          : "RevenueCat not available (Expo Go mode)",
       });
       return;
     }
@@ -108,8 +110,8 @@ export function useEntitlements(params: {
   }, []);
 
   const purchasePackage = useCallback(async (pkg: PurchasesPackage) => {
-    if (!Purchases) {
-      throw new Error("Purchases not available (Expo Go mode). Use a development build.");
+    if (!Purchases || Platform.OS === "web") {
+      throw new Error("Purchases not available on this platform. Use a native app.");
     }
 
     try {
@@ -143,8 +145,8 @@ export function useEntitlements(params: {
   }, []);
 
   const restore = useCallback(async () => {
-    if (!Purchases) {
-      throw new Error("Purchases not available (Expo Go mode). Use a development build.");
+    if (!Purchases || Platform.OS === "web") {
+      throw new Error("Purchases not available on this platform. Use a native app.");
     }
 
     try {
@@ -175,15 +177,17 @@ export function useEntitlements(params: {
     let cancelled = false;
 
     async function init() {
-      // Mock mode when RevenueCat not available (Expo Go)
-      if (!Purchases) {
+      // Mock mode when RevenueCat not available (Expo Go) or on web
+      if (!Purchases || Platform.OS === "web") {
         setState({
           isReady: true,
           isPro: false,
           customerInfo: null,
           offerings: null,
           activeEntitlementIds: [],
-          errorMessage: "RevenueCat not available (Expo Go mode)",
+          errorMessage: Platform.OS === "web"
+            ? "Subscriptions not available on web"
+            : "RevenueCat not available (Expo Go mode)",
         });
         return;
       }
