@@ -112,20 +112,34 @@ export function useEntitlements(params: {
       throw new Error("Purchases not available (Expo Go mode). Use a development build.");
     }
 
-    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    try {
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
 
-    const active = customerInfo.entitlements?.active ?? {};
-    const activeIds = Object.keys(active);
+      const active = customerInfo.entitlements?.active ?? {};
+      const activeIds = Object.keys(active);
 
-    setState((prev) => ({
-      ...prev,
-      customerInfo,
-      offerings: prev.offerings,
-      isPro: Boolean(active[ENTITLEMENT_ID]),
-      activeEntitlementIds: activeIds,
-    }));
+      setState((prev) => ({
+        ...prev,
+        customerInfo,
+        offerings: prev.offerings,
+        isPro: Boolean(active[ENTITLEMENT_ID]),
+        activeEntitlementIds: activeIds,
+        errorMessage: null,
+      }));
 
-    return customerInfo;
+      return customerInfo;
+    } catch (e) {
+      const error = e as Error;
+      // User cancelled purchase - not an error
+      if (error.message?.includes("cancelled") || error.message?.includes("canceled")) {
+        return null;
+      }
+      setState((prev) => ({
+        ...prev,
+        errorMessage: error.message ?? "Purchase failed",
+      }));
+      throw error;
+    }
   }, []);
 
   const restore = useCallback(async () => {
@@ -133,18 +147,28 @@ export function useEntitlements(params: {
       throw new Error("Purchases not available (Expo Go mode). Use a development build.");
     }
 
-    const info = await Purchases.restorePurchases();
-    const active = info.entitlements?.active ?? {};
-    const activeIds = Object.keys(active);
+    try {
+      const info = await Purchases.restorePurchases();
+      const active = info.entitlements?.active ?? {};
+      const activeIds = Object.keys(active);
 
-    setState((prev) => ({
-      ...prev,
-      customerInfo: info,
-      isPro: Boolean(active[ENTITLEMENT_ID]),
-      activeEntitlementIds: activeIds,
-    }));
+      setState((prev) => ({
+        ...prev,
+        customerInfo: info,
+        isPro: Boolean(active[ENTITLEMENT_ID]),
+        activeEntitlementIds: activeIds,
+        errorMessage: null,
+      }));
 
-    return info;
+      return info;
+    } catch (e) {
+      const error = e as Error;
+      setState((prev) => ({
+        ...prev,
+        errorMessage: error.message ?? "Restore failed",
+      }));
+      throw error;
+    }
   }, []);
 
   useEffect(() => {

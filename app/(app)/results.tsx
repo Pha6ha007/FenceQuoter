@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import EmptyState from "@/components/EmptyState";
 import { VariantList } from "@/components/VariantCard";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useOfflineQuote, draftToQuoteInputs } from "@/hooks/useOfflineQuote";
@@ -125,20 +126,14 @@ export default function ResultsScreen() {
   // Empty state
   if (variants.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center p-6">
-        <Text className="text-6xl mb-4">📊</Text>
-        <Text className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center">
-          No Quote Data
-        </Text>
-        <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
-          Please fill out the quote form and calculate first.
-        </Text>
-        <Pressable
-          className="bg-blue-600 rounded-lg py-3 px-6 active:bg-blue-700"
-          onPress={() => router.push("./newQuote")}
-        >
-          <Text className="text-white font-semibold">Create New Quote</Text>
-        </Pressable>
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <EmptyState
+          icon="📊"
+          title="No Quote Data"
+          message="Please fill out the quote form and calculate first."
+          actionLabel="Create New Quote"
+          onAction={() => router.push("./newQuote")}
+        />
       </SafeAreaView>
     );
   }

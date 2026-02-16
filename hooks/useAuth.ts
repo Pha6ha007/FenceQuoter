@@ -41,14 +41,24 @@ export function useAuth(): UseAuthReturn {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState({
-        isLoading: false,
-        isAuthenticated: !!session,
-        session,
-        user: session?.user ?? null,
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setState({
+          isLoading: false,
+          isAuthenticated: !!session,
+          session,
+          user: session?.user ?? null,
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to get session:", error);
+        setState({
+          isLoading: false,
+          isAuthenticated: false,
+          session: null,
+          user: null,
+        });
       });
-    });
 
     // Listen for auth changes
     const {

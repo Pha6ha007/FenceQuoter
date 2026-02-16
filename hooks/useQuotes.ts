@@ -481,10 +481,11 @@ export function useQuotes(userId: string | null): UseQuotesReturn {
         return { error: "Selected variant not found" };
       }
 
-      const baseSubtotal = selectedVariant.materials_total + selectedVariant.labor_total;
+      const baseSubtotal = (selectedVariant.materials_total ?? 0) + (selectedVariant.labor_total ?? 0);
       const newSubtotal = baseSubtotal + customTotal;
       const newMarkup = newSubtotal * (selectedVariant.markup_percent / 100);
-      const taxRate = selectedVariant.tax_amount / (selectedVariant.subtotal + selectedVariant.markup_amount) || 0;
+      const denominator = selectedVariant.subtotal + selectedVariant.markup_amount;
+      const taxRate = denominator > 0 ? selectedVariant.tax_amount / denominator : 0;
       const newTax = (newSubtotal + newMarkup) * taxRate;
       const newTotal = newSubtotal + newMarkup + newTax;
 
