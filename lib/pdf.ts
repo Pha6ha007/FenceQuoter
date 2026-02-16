@@ -235,10 +235,10 @@ function buildHtml(params: QuotePdfInput & { variant: QuoteVariant }) {
       align-items: center;
     }
     .logo {
-      width: 52px;
-      height: 52px;
+      max-height: 60px;
+      max-width: 120px;
       border-radius: 10px;
-      object-fit: cover;
+      object-fit: contain;
       border: 1px solid #eee;
     }
     .company-name {
@@ -353,11 +353,11 @@ function buildHtml(params: QuotePdfInput & { variant: QuoteVariant }) {
       color: #222;
     }
     .totals-row.total {
-      font-size: 14px;
-      font-weight: 900;
-      padding-top: 8px;
-      border-top: 1px solid #eee;
-      margin-top: 6px;
+      font-size: 24px;
+      font-weight: bold;
+      padding-top: 12px;
+      border-top: 2px solid #333;
+      margin-top: 8px;
     }
     .terms {
       font-size: 11px;
@@ -385,7 +385,7 @@ function buildHtml(params: QuotePdfInput & { variant: QuoteVariant }) {
         <div>
           <p class="company-name">${escapeHtml(companyName)}</p>
           <div class="company-meta">
-            ${companyPhone ? `<div>${escapeHtml(companyPhone)}</div>` : ""}
+            ${companyPhone ? `<div>${escapeHtml(formatPhone(companyPhone))}</div>` : ""}
             ${companyEmail ? `<div>${escapeHtml(companyEmail)}</div>` : ""}
           </div>
         </div>
@@ -407,7 +407,7 @@ function buildHtml(params: QuotePdfInput & { variant: QuoteVariant }) {
           <div><b>${escapeHtml(clientName)}</b></div>
           ${clientAddress ? `<div class="muted">${escapeHtml(clientAddress)}</div>` : ""}
           ${clientEmail ? `<div class="muted">${escapeHtml(clientEmail)}</div>` : ""}
-          ${clientPhone ? `<div class="muted">${escapeHtml(clientPhone)}</div>` : ""}
+          ${clientPhone ? `<div class="muted">${escapeHtml(formatPhone(clientPhone))}</div>` : ""}
         </div>
       </div>
 
@@ -604,4 +604,58 @@ function shortId(id: string) {
 function shorten(url: string) {
   if (url.length <= 50) return url;
   return url.slice(0, 28) + "..." + url.slice(-16);
+}
+
+/**
+ * Format phone number for display
+ * US format: "2933364565" → "(293) 336-4565"
+ * International: "+12933364565" → "+1 293 336 4565"
+ * Other: return as-is with basic cleanup
+ */
+function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+
+  // Remove all non-digit characters except leading +
+  const hasPlus = phone.startsWith("+");
+  const digits = phone.replace(/\D/g, "");
+
+  if (!digits) return phone;
+
+  // US format: 10 digits
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  // US with country code: 11 digits starting with 1
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+
+  // International format: group in 3s with + prefix
+  if (hasPlus || digits.length > 10) {
+    const groups: string[] = [];
+    let remaining = digits;
+
+    // Country code (1-3 digits)
+    if (remaining.length > 10) {
+      const countryCodeLen = remaining.length - 10;
+      groups.push(remaining.slice(0, countryCodeLen));
+      remaining = remaining.slice(countryCodeLen);
+    }
+
+    // Rest in groups of 3-4
+    while (remaining.length > 0) {
+      if (remaining.length <= 4) {
+        groups.push(remaining);
+        break;
+      }
+      groups.push(remaining.slice(0, 3));
+      remaining = remaining.slice(3);
+    }
+
+    return "+" + groups.join(" ");
+  }
+
+  // Fallback: return cleaned up version
+  return phone.trim();
 }

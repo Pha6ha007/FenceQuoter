@@ -185,7 +185,7 @@ function BreakdownRow({ item, currencySymbol, index }: BreakdownRowProps) {
 
   return (
     <View
-      className={`py-2 px-2 rounded ${isEven ? "bg-gray-100 dark:bg-gray-800/50" : ""}`}
+      className={`py-2 px-2 rounded ${isEven ? "bg-gray-200/70 dark:bg-gray-700/50" : ""}`}
     >
       {/* Name row with dotted leader and price */}
       <View className="flex-row items-baseline">
