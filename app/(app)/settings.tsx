@@ -1,22 +1,136 @@
 // app/(app)/settings.tsx
 // Settings screen — CLAUDE.md section 4.7
 
+import Constants from "expo-constants";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useProfile, getProfileCurrencySymbol } from "@/hooks/useProfile";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuthContext();
+  const userId = user?.id ?? null;
 
-  const [companyName, setCompanyName] = useState("My Fence Company");
+  const {
+    profile,
+    isLoading: isProfileLoading,
+    isSaving: isProfileSaving,
+    updateProfile,
+  } = useProfile(userId);
+
+  const {
+    settings,
+    isLoading: isSettingsLoading,
+    isSaving: isSettingsSaving,
+    updateSettings,
+  } = useSettings(userId);
+
+  // Local form state
+  const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
-  const [hourlyRate, setHourlyRate] = useState("45");
-  const [defaultMarkup, setDefaultMarkup] = useState("20");
-  const [taxPercent, setTaxPercent] = useState("0");
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [defaultMarkup, setDefaultMarkup] = useState("");
+  const [taxPercent, setTaxPercent] = useState("");
+  const [termsTemplate, setTermsTemplate] = useState("");
 
+  // Track if form is dirty
+  const [isDirty, setIsDirty] = useState(false);
+
+  const isLoading = isProfileLoading || isSettingsLoading;
+  const isSaving = isProfileSaving || isSettingsSaving;
+
+  const currencySymbol = getProfileCurrencySymbol(profile);
+
+  // Initialize form from loaded data
+  useEffect(() => {
+    if (profile) {
+      setCompanyName(profile.company_name ?? "");
+      setPhone(profile.phone ?? "");
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (settings) {
+      setHourlyRate(String(settings.hourly_rate ?? 45));
+      setDefaultMarkup(String(settings.default_markup_percent ?? 20));
+      setTaxPercent(String(settings.tax_percent ?? 0));
+      setTermsTemplate(settings.terms_template ?? "");
+    }
+  }, [settings]);
+
+  // Handle field changes
+  const handleCompanyNameChange = (value: string) => {
+    setCompanyName(value);
+    setIsDirty(true);
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    setIsDirty(true);
+  };
+
+  const handleHourlyRateChange = (value: string) => {
+    setHourlyRate(value);
+    setIsDirty(true);
+  };
+
+  const handleMarkupChange = (value: string) => {
+    setDefaultMarkup(value);
+    setIsDirty(true);
+  };
+
+  const handleTaxChange = (value: string) => {
+    setTaxPercent(value);
+    setIsDirty(true);
+  };
+
+  // Save changes
+  const handleSave = useCallback(async () => {
+    // Update profile
+    const profileResult = await updateProfile({
+      company_name: companyName.trim(),
+      phone: phone.trim(),
+    });
+
+    if (profileResult.error) {
+      Alert.alert("Error", profileResult.error);
+      return;
+    }
+
+    // Update settings
+    const rate = parseFloat(hourlyRate) || 45;
+    const markup = parseFloat(defaultMarkup) || 20;
+    const tax = parseFloat(taxPercent) || 0;
+
+    const settingsResult = await updateSettings({
+      hourly_rate: rate,
+      default_markup_percent: markup,
+      tax_percent: tax,
+      terms_template: termsTemplate,
+    });
+
+    if (settingsResult.error) {
+      Alert.alert("Error", settingsResult.error);
+      return;
+    }
+
+    setIsDirty(false);
+    Alert.alert("Saved", "Your settings have been updated.");
+  }, [companyName, phone, hourlyRate, defaultMarkup, taxPercent, termsTemplate, updateProfile, updateSettings]);
+
+  // Sign out
   const handleSignOut = async () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
@@ -31,6 +145,7 @@ export default function SettingsScreen() {
     ]);
   };
 
+  // Delete account
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
@@ -41,7 +156,6 @@ export default function SettingsScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            // TODO: Implement account deletion
             Alert.alert("Coming Soon", "Account deletion will be available soon.");
           },
         },
@@ -49,9 +163,23 @@ export default function SettingsScreen() {
     );
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="text-gray-500 dark:text-gray-400 mt-4">
+          Loading settings...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  const appVersion = Constants.expoConfig?.version ?? "1.0.0";
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
-      <ScrollView className="p-4">
+      <ScrollView className="p-4" keyboardShouldPersistTaps="handled">
         {/* Company Section */}
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Company
@@ -64,7 +192,9 @@ export default function SettingsScreen() {
             <TextInput
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               value={companyName}
-              onChangeText={setCompanyName}
+              onChangeText={handleCompanyNameChange}
+              placeholder="Enter company name"
+              placeholderTextColor="#9ca3af"
             />
           </View>
           <View>
@@ -76,7 +206,7 @@ export default function SettingsScreen() {
               placeholder="(555) 123-4567"
               placeholderTextColor="#9ca3af"
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={handlePhoneChange}
               keyboardType="phone-pad"
             />
           </View>
@@ -89,13 +219,15 @@ export default function SettingsScreen() {
         <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6">
           <View className="mb-4">
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Hourly Labor Rate ($)
+              Hourly Labor Rate ({currencySymbol})
             </Text>
             <TextInput
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               value={hourlyRate}
-              onChangeText={setHourlyRate}
+              onChangeText={handleHourlyRateChange}
               keyboardType="decimal-pad"
+              placeholder="45"
+              placeholderTextColor="#9ca3af"
             />
           </View>
           <View className="mb-4">
@@ -105,8 +237,10 @@ export default function SettingsScreen() {
             <TextInput
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               value={defaultMarkup}
-              onChangeText={setDefaultMarkup}
+              onChangeText={handleMarkupChange}
               keyboardType="decimal-pad"
+              placeholder="20"
+              placeholderTextColor="#9ca3af"
             />
           </View>
           <View>
@@ -116,11 +250,40 @@ export default function SettingsScreen() {
             <TextInput
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               value={taxPercent}
-              onChangeText={setTaxPercent}
+              onChangeText={handleTaxChange}
               keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
             />
+            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Sales tax percentage if applicable
+            </Text>
           </View>
         </View>
+
+        {/* Save Button */}
+        {isDirty && (
+          <Pressable
+            className={`rounded-xl py-4 px-4 mb-6 ${
+              isSaving ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+            }`}
+            onPress={handleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <View className="flex-row items-center justify-center">
+                <ActivityIndicator color="white" size="small" />
+                <Text className="text-white font-semibold text-base ml-2">
+                  Saving...
+                </Text>
+              </View>
+            ) : (
+              <Text className="text-white text-center font-semibold text-base">
+                Save Changes
+              </Text>
+            )}
+          </Pressable>
+        )}
 
         {/* Subscription Section */}
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
@@ -143,7 +306,7 @@ export default function SettingsScreen() {
               <Text className="text-white font-medium">Upgrade</Text>
             </Pressable>
           </View>
-          <Pressable>
+          <Pressable className="py-2">
             <Text className="text-blue-600 dark:text-blue-400">
               Restore Purchases
             </Text>
@@ -163,22 +326,22 @@ export default function SettingsScreen() {
               {user?.email ?? "Not available"}
             </Text>
           </View>
-          <Pressable className="mb-3">
+          <Pressable className="py-2 mb-2">
             <Text className="text-blue-600 dark:text-blue-400">
               Change Password
             </Text>
           </Pressable>
-          <Pressable onPress={handleSignOut}>
+          <Pressable onPress={handleSignOut} className="py-2">
             <Text className="text-red-600 dark:text-red-400">Sign Out</Text>
           </Pressable>
         </View>
 
         {/* Danger Zone */}
-        <View className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
+        <View className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800 mb-6">
           <Text className="text-base font-medium text-red-800 dark:text-red-300 mb-2">
             Danger Zone
           </Text>
-          <Pressable onPress={handleDeleteAccount}>
+          <Pressable onPress={handleDeleteAccount} className="py-2">
             <Text className="text-red-600 dark:text-red-400">
               Delete Account
             </Text>
@@ -186,9 +349,9 @@ export default function SettingsScreen() {
         </View>
 
         {/* About */}
-        <View className="mt-6 items-center">
+        <View className="items-center mb-8">
           <Text className="text-sm text-gray-500 dark:text-gray-400">
-            FenceQuoter v1.0.0
+            FenceQuoter v{appVersion}
           </Text>
           <View className="flex-row gap-4 mt-2">
             <Pressable>
@@ -202,6 +365,9 @@ export default function SettingsScreen() {
               </Text>
             </Pressable>
           </View>
+          <Text className="text-xs text-gray-400 dark:text-gray-500 mt-4">
+            support@fencequoter.app
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

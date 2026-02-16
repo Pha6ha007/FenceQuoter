@@ -1,64 +1,227 @@
 // app/(app)/history.tsx
 // Quote history screen — CLAUDE.md section 4.6
 
-import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { router } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import EmptyState from "@/components/EmptyState";
+import { QuoteList } from "@/components/QuoteListItem";
 import { useAuthContext } from "@/contexts/AuthContext";
+import {
+  useQuotes,
+  filterByStatus,
+  getQuoteCountsByStatus,
+  canEditQuote,
+} from "@/hooks/useQuotes";
+import type { Quote } from "@/types/database";
+import type { QuoteStatus } from "@/types/quote";
+
+type FilterTab = QuoteStatus | "all";
+
+const FILTER_TABS: { key: FilterTab; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "draft", label: "Draft" },
+  { key: "sent", label: "Sent" },
+  { key: "accepted", label: "Accepted" },
+  { key: "rejected", label: "Rejected" },
+];
 
 export default function HistoryScreen() {
-  const { signOut } = useAuthContext();
+  const { user } = useAuthContext();
+  const userId = user?.id ?? null;
+
+  const {
+    quotes,
+    isLoading,
+    fetchQuotes,
+    deleteQuote,
+  } = useQuotes(userId);
+
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Filter quotes by status
+  const filteredQuotes = useMemo(
+    () => filterByStatus(quotes, activeFilter),
+    [quotes, activeFilter]
+  );
+
+  // Get counts for badges
+  const counts = useMemo(
+    () => getQuoteCountsByStatus(quotes),
+    [quotes]
+  );
+
+  // Pull to refresh
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchQuotes();
+    setRefreshing(false);
+  }, [fetchQuotes]);
+
+  // Navigate to quote
+  const handleQuotePress = useCallback((quote: Quote) => {
+    const isEditable = canEditQuote(quote);
+
+    router.push({
+      pathname: "./results",
+      params: {
+        quoteId: quote.id,
+        variants: JSON.stringify(quote.variants),
+        clientName: quote.client_name,
+        clientEmail: quote.client_email ?? "",
+        clientPhone: quote.client_phone ?? "",
+        clientAddress: quote.client_address ?? "",
+        readOnly: isEditable ? "false" : "true",
+      },
+    });
+  }, []);
+
+  // Delete quote
+  const handleDeleteQuote = useCallback(async (quoteId: string) => {
+    await deleteQuote(quoteId);
+  }, [deleteQuote]);
+
+  // Navigate to new quote
+  const handleNewQuote = useCallback(() => {
+    router.push("./newQuote");
+  }, []);
+
+  // Loading state
+  if (isLoading && quotes.length === 0) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="text-gray-500 dark:text-gray-400 mt-4">
+          Loading quotes...
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
-      <ScrollView
-        className="flex-1 p-4"
-      >
-        {/* Empty State */}
-        <View className="flex-1 items-center justify-center py-20">
-          <View className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full items-center justify-center mb-4">
-            <Text className="text-4xl">📋</Text>
-          </View>
-          <Text className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            No Quotes Yet
-          </Text>
-          <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
-            Create your first quote to get started
-          </Text>
-          <Link href="./newQuote" asChild>
-            <Pressable className="bg-blue-600 rounded-lg py-3 px-6 active:bg-blue-700">
-              <Text className="text-white font-semibold">Create Quote</Text>
-            </Pressable>
-          </Link>
-        </View>
-
-        {/* Temporary: Settings and Logout */}
-        <View className="mt-8 gap-3">
-          <Link href="./settings" asChild>
-            <Pressable className="bg-white dark:bg-gray-800 rounded-lg py-3 px-4 border border-gray-200 dark:border-gray-700">
-              <Text className="text-gray-700 dark:text-gray-300 text-center">
-                Settings
-              </Text>
-            </Pressable>
-          </Link>
-          <Pressable
-            className="bg-red-50 dark:bg-red-900/20 rounded-lg py-3 px-4 border border-red-200 dark:border-red-800"
-            onPress={signOut}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
+        {/* Filter Tabs */}
+        <View className="px-4 pt-2 pb-3">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
           >
-            <Text className="text-red-600 dark:text-red-400 text-center">
-              Sign Out
-            </Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+            {FILTER_TABS.map((tab) => {
+              const isActive = activeFilter === tab.key;
+              const count = counts[tab.key];
 
-      {/* FAB */}
-      <Link href="./newQuote" asChild>
-        <Pressable className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg active:bg-blue-700">
-          <Text className="text-white text-3xl font-light">+</Text>
+              return (
+                <Pressable
+                  key={tab.key}
+                  className={`px-4 py-2 rounded-full flex-row items-center ${
+                    isActive
+                      ? "bg-blue-600"
+                      : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                  }`}
+                  onPress={() => setActiveFilter(tab.key)}
+                >
+                  <Text
+                    className={`font-medium ${
+                      isActive
+                        ? "text-white"
+                        : "text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    {tab.label}
+                  </Text>
+                  {count > 0 && (
+                    <View
+                      className={`ml-2 px-1.5 py-0.5 rounded-full min-w-[20px] items-center ${
+                        isActive
+                          ? "bg-blue-500"
+                          : "bg-gray-100 dark:bg-gray-700"
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs font-medium ${
+                          isActive
+                            ? "text-white"
+                            : "text-gray-600 dark:text-gray-400"
+                        }`}
+                      >
+                        {count}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Quote List or Empty State */}
+        <ScrollView
+          className="flex-1 px-4"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#2563eb"
+            />
+          }
+          contentContainerStyle={
+            filteredQuotes.length === 0 ? { flex: 1 } : { paddingBottom: 100 }
+          }
+        >
+          {filteredQuotes.length === 0 ? (
+            <EmptyState
+              icon={activeFilter === "all" ? "📋" : "🔍"}
+              title={
+                activeFilter === "all"
+                  ? "No Quotes Yet"
+                  : `No ${FILTER_TABS.find(t => t.key === activeFilter)?.label} Quotes`
+              }
+              message={
+                activeFilter === "all"
+                  ? "Create your first quote to get started with your fencing business"
+                  : `You don't have any quotes with this status`
+              }
+              actionLabel={activeFilter === "all" ? "Create Quote" : undefined}
+              onAction={activeFilter === "all" ? handleNewQuote : undefined}
+            />
+          ) : (
+            <QuoteList
+              quotes={filteredQuotes}
+              currencySymbol="$"
+              onQuotePress={handleQuotePress}
+              onQuoteDelete={handleDeleteQuote}
+            />
+          )}
+        </ScrollView>
+
+        {/* FAB - New Quote */}
+        <Pressable
+          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full items-center justify-center shadow-lg active:bg-blue-700"
+          onPress={handleNewQuote}
+          style={{
+            shadowColor: "#2563eb",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 8,
+          }}
+        >
+          <Text className="text-white text-3xl font-light leading-none">+</Text>
         </Pressable>
-      </Link>
-    </SafeAreaView>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
