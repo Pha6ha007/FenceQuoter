@@ -779,7 +779,7 @@ Phase 7 — Polish + Ship
 ## 12. Текущий статус
 
 **Последнее обновление:** 2026-02-16
-**Текущая фаза:** Phase 7 — Polish + Ship
+**Текущая фаза:** Phase 7 — ЗАВЕРШЕНА ✅
 
 ### Что сделано:
 
@@ -814,7 +814,7 @@ Phase 7 — Polish + Ship
 - [x] Paywall check перед отправкой
 
 **Phase 5 — History + Settings** ✅
-- [x] history screen (фильтры по статусу, pull-to-refresh, FAB)
+- [x] history screen (фильтры Active/Sent/Closed, pull-to-refresh, FAB)
 - [x] QuoteListItem component (swipe-to-delete, status badges)
 - [x] EmptyState component
 - [x] settings screen (useProfile + useSettings интеграция)
@@ -827,24 +827,39 @@ Phase 7 — Polish + Ship
 - [x] pdfPreview: initial paywall check (sent_quotes_this_month >= 3)
 - [x] Watermark только для free-юзеров
 
-### Что делаем дальше (Phase 7):
-- [ ] App icon + splash screen
-- [ ] Empty states polish
-- [ ] Error handling sweep
-- [ ] Offline indicator (useNetworkStatus)
-- [ ] EAS Build config (eas.json)
-- [ ] Production builds (iOS + Android)
+**Phase 7 — Polish + Ship** ✅
+- [x] app.json: bundleIdentifier (iOS), package (Android), permissions
+- [x] eas.json: development, preview, production build profiles
+- [x] OfflineBanner component (animated slide-in при потере сети)
+- [x] Empty states унифицированы через EmptyState компонент
+- [x] Error handling sweep (useAuth, useQuotes, useEntitlements)
+- [x] UI/UX аудит: max-width 480px, стандартизация высот/шрифтов
+- [x] PDF template: formatPhone(), logo support, improved Total styling
+- [x] QuoteBreakdown: zebra striping, dotted leaders, bold prices
+- [x] Web workarounds: window.print() для PDF, mailto: для email
+
+### Что осталось (требует ручной работы):
+- [ ] Заменить `your-project-id` в app.json на EAS project ID (`eas init`)
+- [ ] Заменить Apple/Google credentials в eas.json
+- [ ] Создать брендированные app icons (текущие — placeholder)
+- [ ] `eas build --profile production --platform all`
 - [ ] App Store / Google Play submission
 
 ### Блокеры:
-- нет
+- нет (код готов, нужны только credentials и assets)
 
-### Git commits:
+### Git commits (последние):
 ```
-5cf0fd9 phase 1-2: all hooks + tests (110 passing)
-6bb587e initial: project setup before foundation phase
+c4197c0 phase 7: polish and production prep
+0cd116e ui: simplify history tabs to Active/Sent/Closed
+821ba6f fix: Draft tab shows both draft and calculated quotes
+bbb2224 pdf: improve template formatting
+5b99b9b ui: improve QuoteBreakdown readability
+20a2bd0 ui/ux: comprehensive style audit + web PDF/email workarounds
+c2341bf phase 5: history with filters and swipe-delete, settings screen
+116e436 phase 3-4: quote flow complete, calculator, forms, results, pdf, sending
 ```
 
 ---
 
-*Обновлять секцию 12 после каждой сессии с Claude Code.*
+*MVP code complete. Ready for production builds and store submission.*
