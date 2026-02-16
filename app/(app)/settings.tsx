@@ -16,9 +16,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import * as ImagePicker from "expo-image-picker";
+
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useMaterials } from "@/hooks/useMaterials";
 import { useProfile, getProfileCurrencySymbol } from "@/hooks/useProfile";
 import { useSettings } from "@/hooks/useSettings";
+import type { FenceType } from "@/types/quote";
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuthContext();
@@ -29,6 +33,7 @@ export default function SettingsScreen() {
     isLoading: isProfileLoading,
     isSaving: isProfileSaving,
     updateProfile,
+    uploadLogo,
   } = useProfile(userId);
 
   const {
@@ -38,6 +43,14 @@ export default function SettingsScreen() {
     updateSettings,
   } = useSettings(userId);
 
+  const {
+    materials,
+    isLoading: isMaterialsLoading,
+    isSaving: isMaterialsSaving,
+    updateMaterial,
+    resetToDefaults,
+  } = useMaterials(userId);
+
   // Local form state
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
@@ -46,11 +59,17 @@ export default function SettingsScreen() {
   const [taxPercent, setTaxPercent] = useState("");
   const [termsTemplate, setTermsTemplate] = useState("");
 
+  // Materials accordion state
+  const [expandedFenceType, setExpandedFenceType] = useState<FenceType | null>(null);
+  const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const [editingPrice, setEditingPrice] = useState("");
+
   // Track if form is dirty
   const [isDirty, setIsDirty] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  const isLoading = isProfileLoading || isSettingsLoading;
-  const isSaving = isProfileSaving || isSettingsSaving;
+  const isLoading = isProfileLoading || isSettingsLoading || isMaterialsLoading;
+  const isSaving = isProfileSaving || isSettingsSaving || isMaterialsSaving;
 
   const currencySymbol = getProfileCurrencySymbol(profile);
 
@@ -95,6 +114,103 @@ export default function SettingsScreen() {
   const handleTaxChange = (value: string) => {
     setTaxPercent(value);
     setIsDirty(true);
+  };
+
+  const handleTermsChange = (value: string) => {
+    setTermsTemplate(value);
+    setIsDirty(true);
+  };
+
+  // Upload logo
+  const handleUploadLogo = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Required", "Please allow access to your photo library.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) return;
+
+      setIsUploadingLogo(true);
+      const { error } = await uploadLogo(result.assets[0].uri);
+      setIsUploadingLogo(false);
+
+      if (error) {
+        Alert.alert("Error", error);
+      } else {
+        Alert.alert("Success", "Logo uploaded successfully.");
+      }
+    } catch (e) {
+      setIsUploadingLogo(false);
+      Alert.alert("Error", "Failed to upload logo.");
+    }
+  };
+
+  // Materials editing
+  const handleStartEditPrice = (materialId: string, currentPrice: number) => {
+    setEditingMaterialId(materialId);
+    setEditingPrice(String(currentPrice));
+  };
+
+  const handleSavePrice = async (materialId: string) => {
+    const newPrice = parseFloat(editingPrice);
+    if (isNaN(newPrice) || newPrice < 0) {
+      Alert.alert("Invalid Price", "Please enter a valid price.");
+      return;
+    }
+
+    const { error } = await updateMaterial(materialId, { unit_price: newPrice });
+    if (error) {
+      Alert.alert("Error", error);
+    }
+    setEditingMaterialId(null);
+    setEditingPrice("");
+  };
+
+  const handleResetMaterials = () => {
+    Alert.alert(
+      "Reset Materials",
+      "This will reset all material prices to their default values. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await resetToDefaults();
+            if (error) {
+              Alert.alert("Error", error);
+            } else {
+              Alert.alert("Success", "Materials reset to defaults.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Group materials by fence type
+  const materialsByFenceType = materials.reduce((acc, mat) => {
+    const fenceType = mat.fence_type as FenceType;
+    if (!acc[fenceType]) acc[fenceType] = [];
+    acc[fenceType].push(mat);
+    return acc;
+  }, {} as Record<FenceType, typeof materials>);
+
+  const FENCE_TYPE_LABELS: Record<FenceType, string> = {
+    wood_privacy: "Wood Privacy",
+    wood_picket: "Wood Picket",
+    chain_link: "Chain Link",
+    vinyl: "Vinyl",
+    aluminum: "Aluminum",
   };
 
   // Save changes
@@ -190,6 +306,43 @@ export default function SettingsScreen() {
           Company
         </Text>
         <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6">
+          {/* Logo */}
+          <View className="mb-4">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Company Logo
+            </Text>
+            <View className="flex-row items-center gap-4">
+              {profile?.logo_url ? (
+                <View className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <View className="w-full h-full bg-gray-100 dark:bg-gray-700 items-center justify-center">
+                    <Text className="text-2xl">🏢</Text>
+                  </View>
+                </View>
+              ) : (
+                <View className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 items-center justify-center">
+                  <Text className="text-2xl text-gray-400">📷</Text>
+                </View>
+              )}
+              <Pressable
+                className={`flex-1 border border-gray-300 dark:border-gray-600 rounded-lg items-center justify-center ${
+                  isUploadingLogo ? "bg-gray-100 dark:bg-gray-700" : ""
+                }`}
+                style={{ height: 48 }}
+                onPress={handleUploadLogo}
+                disabled={isUploadingLogo}
+              >
+                {isUploadingLogo ? (
+                  <ActivityIndicator size="small" color="#2563eb" />
+                ) : (
+                  <Text className="text-blue-600 dark:text-blue-400 font-medium">
+                    {profile?.logo_url ? "Change Logo" : "Upload Logo"}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Company Name */}
           <View className="mb-4">
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Company Name
@@ -203,6 +356,8 @@ export default function SettingsScreen() {
               placeholderTextColor="#9ca3af"
             />
           </View>
+
+          {/* Phone */}
           <View>
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Phone
@@ -295,6 +450,127 @@ export default function SettingsScreen() {
             )}
           </Pressable>
         )}
+
+        {/* Materials Section */}
+        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+          Materials
+        </Text>
+        <View className="bg-white dark:bg-gray-800 rounded-xl mb-6 overflow-hidden">
+          {(Object.keys(FENCE_TYPE_LABELS) as FenceType[]).map((fenceType) => {
+            const fenceMaterials = materialsByFenceType[fenceType] ?? [];
+            const isExpanded = expandedFenceType === fenceType;
+
+            return (
+              <View key={fenceType}>
+                {/* Accordion Header */}
+                <Pressable
+                  className={`flex-row items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700 ${
+                    isExpanded ? "bg-gray-50 dark:bg-gray-700/50" : ""
+                  }`}
+                  onPress={() => setExpandedFenceType(isExpanded ? null : fenceType)}
+                >
+                  <Text className="text-base font-medium text-gray-900 dark:text-white">
+                    {FENCE_TYPE_LABELS[fenceType]}
+                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-sm text-gray-500 dark:text-gray-400">
+                      {fenceMaterials.length} items
+                    </Text>
+                    <Text className="text-gray-400">{isExpanded ? "▼" : "▶"}</Text>
+                  </View>
+                </Pressable>
+
+                {/* Accordion Content */}
+                {isExpanded && (
+                  <View className="px-4 pb-4 pt-2">
+                    {fenceMaterials.length === 0 ? (
+                      <Text className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                        No materials configured
+                      </Text>
+                    ) : (
+                      fenceMaterials.map((mat) => (
+                        <View
+                          key={mat.id}
+                          className="flex-row items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                        >
+                          <View className="flex-1 mr-3">
+                            <Text
+                              className="text-sm text-gray-900 dark:text-white"
+                              numberOfLines={1}
+                            >
+                              {mat.name}
+                            </Text>
+                            <Text className="text-xs text-gray-500 dark:text-gray-400">
+                              per {mat.unit}
+                            </Text>
+                          </View>
+                          {editingMaterialId === mat.id ? (
+                            <View className="flex-row items-center gap-2">
+                              <Text className="text-gray-500">{currencySymbol}</Text>
+                              <TextInput
+                                className="border border-blue-500 rounded px-2 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                style={{ height: 36, width: 80 }}
+                                value={editingPrice}
+                                onChangeText={setEditingPrice}
+                                keyboardType="decimal-pad"
+                                autoFocus
+                              />
+                              <Pressable
+                                className="bg-blue-600 rounded px-3 py-1"
+                                onPress={() => handleSavePrice(mat.id)}
+                              >
+                                <Text className="text-white text-sm font-medium">Save</Text>
+                              </Pressable>
+                            </View>
+                          ) : (
+                            <Pressable
+                              className="bg-gray-100 dark:bg-gray-700 rounded px-3 py-1"
+                              onPress={() => handleStartEditPrice(mat.id, mat.unit_price)}
+                            >
+                              <Text className="text-gray-900 dark:text-white font-medium">
+                                {currencySymbol}{mat.unit_price.toFixed(2)}
+                              </Text>
+                            </Pressable>
+                          )}
+                        </View>
+                      ))
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+
+          {/* Reset Button */}
+          <Pressable
+            className="p-4 border-t border-gray-200 dark:border-gray-700"
+            onPress={handleResetMaterials}
+          >
+            <Text className="text-center text-red-600 dark:text-red-400 font-medium">
+              Reset to Defaults
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Quote Terms Section */}
+        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+          Quote Terms
+        </Text>
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6">
+          <TextInput
+            className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            style={{ minHeight: 120 }}
+            value={termsTemplate}
+            onChangeText={handleTermsChange}
+            placeholder="Quote valid for 30 days. 50% deposit required to begin work. Balance due upon completion."
+            placeholderTextColor="#9ca3af"
+            multiline
+            textAlignVertical="top"
+          />
+          <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            This text appears at the bottom of every quote PDF
+          </Text>
+        </View>
 
         {/* Subscription Section */}
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
