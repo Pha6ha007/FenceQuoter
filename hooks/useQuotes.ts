@@ -626,14 +626,20 @@ export function useQuotes(userId: string | null): UseQuotesReturn {
 
 /**
  * Filter quotes by status
+ * Note: "draft" tab shows both 'draft' and 'calculated' statuses (both are unsent)
  */
 export function filterByStatus(quotes: Quote[], status: QuoteStatus | "all"): Quote[] {
   if (status === "all") return quotes;
+  // For user, "draft" means any unsent quote (draft or calculated)
+  if (status === "draft") {
+    return quotes.filter((q) => q.status === "draft" || q.status === "calculated");
+  }
   return quotes.filter((q) => q.status === status);
 }
 
 /**
  * Get quotes count by status
+ * Note: "draft" count includes both 'draft' and 'calculated' statuses
  */
 export function getQuoteCountsByStatus(
   quotes: Quote[]
@@ -650,6 +656,9 @@ export function getQuoteCountsByStatus(
   for (const quote of quotes) {
     counts[quote.status] = (counts[quote.status] ?? 0) + 1;
   }
+
+  // For UI: draft count includes calculated (both are unsent)
+  counts.draft = counts.draft + counts.calculated;
 
   return counts as Record<QuoteStatus | "all", number>;
 }
