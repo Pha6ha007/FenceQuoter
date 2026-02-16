@@ -1,9 +1,9 @@
 // app/(app)/_layout.tsx
 // Protected app layout with auth guard — CLAUDE.md section 3
 
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
 import { useAuthContext } from "@/contexts/AuthContext";
 import { checkOnboardingComplete } from "@/hooks/useAuth";
@@ -90,6 +90,15 @@ export default function AppLayout() {
         options={{
           title: "Quotes",
           headerLargeTitle: true,
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push("./settings")}
+              className="p-2"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={{ fontSize: 22 }}>⚙️</Text>
+            </Pressable>
+          ),
         }}
       />
       <Stack.Screen
