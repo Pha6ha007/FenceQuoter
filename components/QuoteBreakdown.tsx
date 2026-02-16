@@ -47,6 +47,7 @@ export default function QuoteBreakdown({
               key={`material-${index}`}
               item={item}
               currencySymbol={currencySymbol}
+              index={index}
             />
           ))}
           <View className="flex-row justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-800">
@@ -71,6 +72,7 @@ export default function QuoteBreakdown({
               key={`labor-${index}`}
               item={item}
               currencySymbol={currencySymbol}
+              index={index}
             />
           ))}
           <View className="flex-row justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-800">
@@ -95,6 +97,7 @@ export default function QuoteBreakdown({
               key={`removal-${index}`}
               item={item}
               currencySymbol={currencySymbol}
+              index={index}
             />
           ))}
         </View>
@@ -111,6 +114,7 @@ export default function QuoteBreakdown({
               key={`custom-${index}`}
               item={item}
               currencySymbol={currencySymbol}
+              index={index}
             />
           ))}
         </View>
@@ -161,39 +165,56 @@ export default function QuoteBreakdown({
 interface BreakdownRowProps {
   item: QuoteItem;
   currencySymbol: string;
+  index: number;
 }
 
-function BreakdownRow({ item, currencySymbol }: BreakdownRowProps) {
-  const formatQty = (qty: number, unit: string) => {
+function BreakdownRow({ item, currencySymbol, index }: BreakdownRowProps) {
+  const formatQtyUnit = (qty: number, unit: string) => {
     if (unit === "hours" || unit === "hr") {
       return `${qty.toFixed(1)} hrs`;
     }
     if (unit === "ft" || unit === "feet") {
       return `${qty.toFixed(0)} ft`;
     }
-    return `${qty}`;
+    // Default: show qty with unit (e.g., "14 each", "5 bag")
+    const unitLabel = unit || "each";
+    return `${Math.round(qty * 100) / 100} ${unitLabel}`;
   };
 
+  const isEven = index % 2 === 0;
+
   return (
-    <View className="flex-row justify-between py-1">
-      <View className="flex-1 pr-2">
+    <View
+      className={`py-2 px-2 rounded ${isEven ? "bg-gray-100 dark:bg-gray-800/50" : ""}`}
+    >
+      {/* Name row with dotted leader and price */}
+      <View className="flex-row items-baseline">
         <Text
-          className="text-sm text-gray-600 dark:text-gray-400"
+          className="text-sm text-gray-700 dark:text-gray-300 flex-shrink"
           numberOfLines={1}
         >
           {item.name}
         </Text>
-        <Text className="text-xs text-gray-400 dark:text-gray-500">
-          {formatQty(item.qty, item.unit)} × {currencySymbol}
-          {item.unit_price.toFixed(2)}
+        {/* Dotted leader */}
+        <Text
+          className="flex-1 text-gray-400 dark:text-gray-600 mx-1 overflow-hidden"
+          numberOfLines={1}
+        >
+          {'·'.repeat(100)}
+        </Text>
+        {/* Price - bold and slightly larger */}
+        <Text className="text-base font-semibold text-gray-900 dark:text-white">
+          {currencySymbol}
+          {item.total.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
         </Text>
       </View>
-      <Text className="text-sm text-gray-900 dark:text-white">
-        {currencySymbol}
-        {item.total.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
+      {/* Qty × unit price row */}
+      <Text className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+        {formatQtyUnit(item.qty, item.unit)} × {currencySymbol}
+        {item.unit_price.toFixed(2)}
       </Text>
     </View>
   );
