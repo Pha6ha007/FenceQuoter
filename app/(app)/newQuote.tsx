@@ -2,83 +2,225 @@
 // New quote form screen — CLAUDE.md section 4.3
 
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { FENCE_SPECS, TERRAIN_MULTIPLIERS } from "@/constants/coefficients";
-import type { FenceType, TerrainType } from "@/types/quote";
-
-const FENCE_TYPES: { value: FenceType; label: string }[] = [
-  { value: "wood_privacy", label: "Wood Privacy" },
-  { value: "wood_picket", label: "Wood Picket" },
-  { value: "chain_link", label: "Chain Link" },
-  { value: "vinyl", label: "Vinyl" },
-  { value: "aluminum", label: "Aluminum" },
-];
-
-const TERRAIN_TYPES: { value: TerrainType; label: string }[] = [
-  { value: "flat", label: "Flat" },
-  { value: "slight_slope", label: "Slight Slope" },
-  { value: "steep_slope", label: "Steep Slope" },
-  { value: "rocky", label: "Rocky" },
-];
+import QuoteForm from "@/components/QuoteForm";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useOfflineQuote, draftToQuoteInputs, formatLastSaved } from "@/hooks/useOfflineQuote";
+import { useMaterials, toMaterialRecords } from "@/hooks/useMaterials";
+import { useSettings, toCalculatorSettings } from "@/hooks/useSettings";
+import { calculateQuote } from "@/lib/calculator";
+import { quoteFormSchema, validate } from "@/lib/validation";
+import type { FenceType, QuoteInputs, TerrainType } from "@/types/quote";
 
 export default function NewQuoteScreen() {
-  // Client info
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
+  const { user } = useAuthContext();
+  const userId = user?.id ?? null;
 
-  // Fence params
-  const [fenceType, setFenceType] = useState<FenceType>("wood_privacy");
-  const [length, setLength] = useState("");
-  const [height, setHeight] = useState(
-    String(FENCE_SPECS.wood_privacy.default_height)
-  );
-  const [gatesStandard, setGatesStandard] = useState(0);
-  const [gatesLarge, setGatesLarge] = useState(0);
-  const [removeOld, setRemoveOld] = useState(false);
-  const [terrain, setTerrain] = useState<TerrainType>("flat");
-  const [notes, setNotes] = useState("");
+  // Hooks
+  const {
+    draft,
+    isLoading: isDraftLoading,
+    isSaving,
+    lastSavedAt,
+    updateClientInfo,
+    updateInput,
+    setCalculatedVariants,
+    clearDraft,
+  } = useOfflineQuote();
 
+  const {
+    materials,
+    isLoading: isMaterialsLoading,
+    getMaterialsByFenceType,
+  } = useMaterials(userId);
+
+  const { settings, isLoading: isSettingsLoading } = useSettings(userId);
+
+  // Local state
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isCalculating, setIsCalculating] = useState(false);
 
-  const selectedSpec = FENCE_SPECS[fenceType];
+  // Loading state
+  const isLoading = isDraftLoading || isMaterialsLoading || isSettingsLoading;
 
-  const handleFenceTypeChange = (type: FenceType) => {
-    setFenceType(type);
-    setHeight(String(FENCE_SPECS[type].default_height));
+  // Client info from draft
+  const clientInfo = {
+    client_name: draft.client_name,
+    client_email: draft.client_email,
+    client_phone: draft.client_phone,
+    client_address: draft.client_address,
   };
 
-  const handleCalculate = () => {
+  // Fence inputs from draft
+  const fenceInputs = {
+    fence_type: draft.inputs?.fence_type ?? ("wood_privacy" as FenceType),
+    length: draft.inputs?.length ?? 0,
+    height: draft.inputs?.height ?? 6,
+    gates_standard: draft.inputs?.gates_standard ?? 0,
+    gates_large: draft.inputs?.gates_large ?? 0,
+    remove_old: draft.inputs?.remove_old ?? false,
+    terrain: draft.inputs?.terrain ?? ("flat" as TerrainType),
+    notes: draft.inputs?.notes ?? "",
+  };
+
+  // Handle client info change
+  const handleClientInfoChange = (
+    info: Partial<{
+      client_name: string;
+      client_email: string;
+      client_phone: string;
+      client_address: string;
+    }>
+  ) => {
+    updateClientInfo(info);
+    // Clear related errors
+    const infoKeys = Object.keys(info);
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      for (const key of infoKeys) {
+        delete newErrors[key];
+      }
+      return newErrors;
+    });
+  };
+
+  // Handle fence input change
+  const handleInputChange = <K extends keyof QuoteInputs>(
+    field: K,
+    value: QuoteInputs[K]
+  ) => {
+    updateInput(field, value);
+    // Clear related error
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+  };
+
+  // Validate and calculate
+  const handleCalculate = async () => {
     setErrors({});
-    const newErrors: Record<string, string> = {};
 
-    if (!clientName.trim()) {
-      newErrors.clientName = "Client name is required";
-    }
-    if (!length || parseFloat(length) <= 0) {
-      newErrors.length = "Valid length is required";
-    }
+    // Build form data for validation
+    const formData = {
+      client_name: clientInfo.client_name,
+      client_email: clientInfo.client_email || undefined,
+      client_phone: clientInfo.client_phone || undefined,
+      client_address: clientInfo.client_address || undefined,
+      fence_type: fenceInputs.fence_type,
+      length: fenceInputs.length,
+      height: fenceInputs.height,
+      gates_standard: fenceInputs.gates_standard,
+      gates_large: fenceInputs.gates_large,
+      remove_old: fenceInputs.remove_old,
+      terrain: fenceInputs.terrain,
+      notes: fenceInputs.notes || undefined,
+    };
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    // Validate using quoteFormSchema
+    const result = validate(quoteFormSchema, formData);
+
+    if (!result.success) {
+      setErrors(result.errors);
+      // Scroll to first error or show alert
+      const firstError = Object.values(result.errors)[0];
+      Alert.alert("Validation Error", firstError);
       return;
     }
 
-    // TODO: Navigate to results with calculated data
-    router.push("./results");
+    setIsCalculating(true);
+
+    try {
+      // Get materials for the selected fence type
+      const fenceMaterials = getMaterialsByFenceType(fenceInputs.fence_type);
+
+      if (fenceMaterials.length === 0) {
+        Alert.alert(
+          "No Materials",
+          "No materials found for this fence type. Please set up materials in Settings first."
+        );
+        setIsCalculating(false);
+        return;
+      }
+
+      // Convert to calculator formats
+      const quoteInputs = draftToQuoteInputs(draft);
+      const materialRecords = toMaterialRecords(fenceMaterials);
+      const calculatorSettings = toCalculatorSettings(settings);
+
+      // Calculate quote
+      const calculatorResult = calculateQuote(
+        quoteInputs,
+        materialRecords,
+        calculatorSettings
+      );
+
+      // Save calculated variants to draft
+      setCalculatedVariants(calculatorResult.variants, "standard");
+
+      // Navigate to results with calculated data
+      router.push({
+        pathname: "./results",
+        params: {
+          variants: JSON.stringify(calculatorResult.variants),
+          clientName: clientInfo.client_name,
+          clientEmail: clientInfo.client_email,
+          clientPhone: clientInfo.client_phone,
+          clientAddress: clientInfo.client_address,
+          fenceType: fenceInputs.fence_type,
+        },
+      });
+    } catch (e) {
+      console.error("Calculation error:", e);
+      Alert.alert(
+        "Calculation Error",
+        "Failed to calculate quote. Please try again."
+      );
+    } finally {
+      setIsCalculating(false);
+    }
   };
+
+  // Handle clear draft
+  const handleClearDraft = () => {
+    Alert.alert(
+      "Clear Draft",
+      "Are you sure you want to clear this draft? All entered data will be lost.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: () => clearDraft(),
+        },
+      ]
+    );
+  };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="text-gray-500 dark:text-gray-400 mt-4">
+          Loading...
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-gray-900" edges={["bottom"]}>
@@ -90,290 +232,73 @@ export default function NewQuoteScreen() {
           className="p-4"
           keyboardShouldPersistTaps="handled"
         >
-          {/* Client Section */}
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-            Client Information
-          </Text>
-
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Client Name *
-            </Text>
-            <TextInput
-              className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.clientName
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              placeholder="John Smith"
-              placeholderTextColor="#9ca3af"
-              value={clientName}
-              onChangeText={setClientName}
-              autoCapitalize="words"
-            />
-            {errors.clientName && (
-              <Text className="text-red-500 text-sm mt-1">
-                {errors.clientName}
+          {/* Header with save status */}
+          <View className="flex-row justify-between items-center mb-4">
+            <View>
+              <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+                New Quote
               </Text>
-            )}
-          </View>
-
-          <View className="flex-row gap-3 mb-4">
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Phone
-              </Text>
-              <TextInput
-                className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                placeholder="(555) 123-4567"
-                placeholderTextColor="#9ca3af"
-                value={clientPhone}
-                onChangeText={setClientPhone}
-                keyboardType="phone-pad"
-              />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email
-              </Text>
-              <TextInput
-                className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                placeholder="email@example.com"
-                placeholderTextColor="#9ca3af"
-                value={clientEmail}
-                onChangeText={setClientEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Address
-            </Text>
-            <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              placeholder="123 Main St, City, State"
-              placeholderTextColor="#9ca3af"
-              value={clientAddress}
-              onChangeText={setClientAddress}
-            />
-          </View>
-
-          {/* Fence Section */}
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-            Fence Details
-          </Text>
-
-          {/* Fence Type */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Fence Type
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {FENCE_TYPES.map((type) => (
-                <Pressable
-                  key={type.value}
-                  className={`px-4 py-2 rounded-lg border ${
-                    fenceType === type.value
-                      ? "bg-blue-600 border-blue-600"
-                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                  }`}
-                  onPress={() => handleFenceTypeChange(type.value)}
-                >
-                  <Text
-                    className={
-                      fenceType === type.value
-                        ? "text-white font-medium"
-                        : "text-gray-700 dark:text-gray-300"
-                    }
-                  >
-                    {type.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Length and Height */}
-          <View className="flex-row gap-3 mb-4">
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Length (ft) *
-              </Text>
-              <TextInput
-                className={`border rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                  errors.length
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
-                placeholder="100"
-                placeholderTextColor="#9ca3af"
-                value={length}
-                onChangeText={setLength}
-                keyboardType="decimal-pad"
-              />
-              {errors.length && (
-                <Text className="text-red-500 text-sm mt-1">
-                  {errors.length}
+              {lastSavedAt && (
+                <Text className="text-sm text-gray-500 dark:text-gray-400">
+                  {formatLastSaved(lastSavedAt)}
                 </Text>
               )}
             </View>
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Height (ft)
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {selectedSpec.available_heights.map((h) => (
-                  <Pressable
-                    key={h}
-                    className={`px-3 py-2 rounded-lg border ${
-                      parseFloat(height) === h
-                        ? "bg-blue-600 border-blue-600"
-                        : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                    }`}
-                    onPress={() => setHeight(String(h))}
-                  >
-                    <Text
-                      className={
-                        parseFloat(height) === h
-                          ? "text-white"
-                          : "text-gray-700 dark:text-gray-300"
-                      }
-                    >
-                      {h}ft
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </View>
-
-          {/* Gates */}
-          <View className="flex-row gap-3 mb-4">
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Walk Gates
-              </Text>
-              <View className="flex-row items-center border border-gray-300 dark:border-gray-600 rounded-lg">
-                <Pressable
-                  className="px-4 py-3"
-                  onPress={() => setGatesStandard(Math.max(0, gatesStandard - 1))}
-                >
-                  <Text className="text-xl text-gray-600 dark:text-gray-400">−</Text>
-                </Pressable>
-                <Text className="flex-1 text-center text-base text-gray-900 dark:text-white">
-                  {gatesStandard}
+            {isSaving && (
+              <View className="flex-row items-center">
+                <ActivityIndicator size="small" color="#9ca3af" />
+                <Text className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                  Saving...
                 </Text>
-                <Pressable
-                  className="px-4 py-3"
-                  onPress={() => setGatesStandard(gatesStandard + 1)}
-                >
-                  <Text className="text-xl text-gray-600 dark:text-gray-400">+</Text>
-                </Pressable>
               </View>
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Driveway Gates
-              </Text>
-              <View className="flex-row items-center border border-gray-300 dark:border-gray-600 rounded-lg">
-                <Pressable
-                  className="px-4 py-3"
-                  onPress={() => setGatesLarge(Math.max(0, gatesLarge - 1))}
-                >
-                  <Text className="text-xl text-gray-600 dark:text-gray-400">−</Text>
-                </Pressable>
-                <Text className="flex-1 text-center text-base text-gray-900 dark:text-white">
-                  {gatesLarge}
-                </Text>
-                <Pressable
-                  className="px-4 py-3"
-                  onPress={() => setGatesLarge(gatesLarge + 1)}
-                >
-                  <Text className="text-xl text-gray-600 dark:text-gray-400">+</Text>
-                </Pressable>
-              </View>
-            </View>
+            )}
           </View>
 
-          {/* Terrain */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Terrain
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
-              {TERRAIN_TYPES.map((t) => (
-                <Pressable
-                  key={t.value}
-                  className={`px-4 py-2 rounded-lg border ${
-                    terrain === t.value
-                      ? "bg-blue-600 border-blue-600"
-                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                  }`}
-                  onPress={() => setTerrain(t.value)}
-                >
-                  <Text
-                    className={
-                      terrain === t.value
-                        ? "text-white font-medium"
-                        : "text-gray-700 dark:text-gray-300"
-                    }
-                  >
-                    {t.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+          {/* Quote Form */}
+          <QuoteForm
+            clientInfo={clientInfo}
+            fenceInputs={fenceInputs}
+            errors={errors}
+            onClientInfoChange={handleClientInfoChange}
+            onInputChange={handleInputChange}
+            disabled={isCalculating}
+          />
 
-          {/* Remove Old */}
-          <Pressable
-            className="flex-row items-center mb-4"
-            onPress={() => setRemoveOld(!removeOld)}
-          >
-            <View
-              className={`w-6 h-6 rounded border mr-3 items-center justify-center ${
-                removeOld
-                  ? "bg-blue-600 border-blue-600"
-                  : "border-gray-300 dark:border-gray-600"
+          {/* Action Buttons */}
+          <View className="gap-3 mb-6">
+            {/* Calculate Button */}
+            <Pressable
+              className={`rounded-lg py-4 px-4 ${
+                isCalculating ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
               }`}
+              onPress={handleCalculate}
+              disabled={isCalculating}
             >
-              {removeOld && <Text className="text-white text-sm">✓</Text>}
-            </View>
-            <Text className="text-gray-700 dark:text-gray-300">
-              Remove old fence
-            </Text>
-          </Pressable>
+              {isCalculating ? (
+                <View className="flex-row items-center justify-center">
+                  <ActivityIndicator color="white" />
+                  <Text className="text-white font-semibold text-lg ml-2">
+                    Calculating...
+                  </Text>
+                </View>
+              ) : (
+                <Text className="text-white text-center font-semibold text-lg">
+                  Calculate →
+                </Text>
+              )}
+            </Pressable>
 
-          {/* Notes */}
-          <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Notes
-            </Text>
-            <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              placeholder="Additional notes..."
-              placeholderTextColor="#9ca3af"
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              style={{ minHeight: 80 }}
-            />
+            {/* Clear Draft Button */}
+            <Pressable
+              className="rounded-lg py-3 px-4 border border-gray-300 dark:border-gray-600"
+              onPress={handleClearDraft}
+              disabled={isCalculating}
+            >
+              <Text className="text-gray-700 dark:text-gray-300 text-center font-medium">
+                Clear Draft
+              </Text>
+            </Pressable>
           </View>
-
-          {/* Calculate Button */}
-          <Pressable
-            className="bg-blue-600 rounded-lg py-4 px-4 active:bg-blue-700"
-            onPress={handleCalculate}
-          >
-            <Text className="text-white text-center font-semibold text-lg">
-              Calculate →
-            </Text>
-          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
