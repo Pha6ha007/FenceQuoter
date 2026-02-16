@@ -3,14 +3,19 @@
 
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { VariantList } from "@/components/VariantCard";
-import { useOfflineQuote } from "@/hooks/useOfflineQuote";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useOfflineQuote, draftToQuoteInputs } from "@/hooks/useOfflineQuote";
+import { useQuotes } from "@/hooks/useQuotes";
 import type { QuoteVariant, VariantType } from "@/types/quote";
 
 export default function ResultsScreen() {
+  const { user } = useAuthContext();
+  const userId = user?.id ?? null;
+
   // Get navigation params
   const params = useLocalSearchParams<{
     variants?: string;
@@ -20,10 +25,12 @@ export default function ResultsScreen() {
     clientAddress?: string;
     fenceType?: string;
     readOnly?: string;
+    quoteId?: string;
   }>();
 
-  // Parse variants from params or use draft
-  const { draft, setCalculatedVariants } = useOfflineQuote();
+  // Hooks
+  const { draft, setCalculatedVariants, clearDraft } = useOfflineQuote();
+  const { saveCalculatedQuote, isSaving } = useQuotes(userId);
 
   const variants = useMemo<QuoteVariant[]>(() => {
     // Try to parse from params first
@@ -67,23 +74,46 @@ export default function ResultsScreen() {
   };
 
   // Handle generate PDF
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     if (!selectedVariantData) {
       Alert.alert("Error", "Please select a variant first");
       return;
     }
 
-    // Navigate to PDF preview with selected variant
+    // If we already have a quoteId (viewing from history), go directly to PDF
+    if (params.quoteId) {
+      router.push({
+        pathname: "./pdfPreview",
+        params: { quoteId: params.quoteId },
+      });
+      return;
+    }
+
+    // Save quote to Supabase first
+    const quoteInputs = draftToQuoteInputs(draft);
+
+    const { error, id } = await saveCalculatedQuote({
+      client_name: params.clientName ?? draft.client_name,
+      client_email: params.clientEmail ?? draft.client_email,
+      client_phone: params.clientPhone ?? draft.client_phone,
+      client_address: params.clientAddress ?? draft.client_address,
+      inputs: quoteInputs,
+      variants: variants,
+      selected_variant: selectedVariant,
+    });
+
+    if (error || !id) {
+      Alert.alert("Error", error ?? "Failed to save quote");
+      return;
+    }
+
+    // Clear the draft after successful save
+    await clearDraft();
+
+    // Navigate to PDF preview with quoteId
     router.push({
       pathname: "./pdfPreview",
-      params: {
-        variant: JSON.stringify(selectedVariantData),
-        clientName: params.clientName ?? draft.client_name,
-        clientEmail: params.clientEmail ?? draft.client_email,
-        clientPhone: params.clientPhone ?? draft.client_phone,
-        clientAddress: params.clientAddress ?? draft.client_address,
-        fenceType: params.fenceType ?? draft.inputs?.fence_type,
-      },
+      params: { quoteId: id },
     });
   };
 
@@ -159,12 +189,24 @@ export default function ResultsScreen() {
         {!isReadOnly && (
           <View className="gap-3 mb-6">
             <Pressable
-              className="bg-blue-600 rounded-lg py-4 px-4 active:bg-blue-700"
+              className={`rounded-lg py-4 px-4 ${
+                isSaving ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+              }`}
               onPress={handleGeneratePDF}
+              disabled={isSaving}
             >
-              <Text className="text-white text-center font-semibold text-lg">
-                Generate PDF →
-              </Text>
+              {isSaving ? (
+                <View className="flex-row items-center justify-center">
+                  <ActivityIndicator color="white" />
+                  <Text className="text-white font-semibold text-lg ml-2">
+                    Saving...
+                  </Text>
+                </View>
+              ) : (
+                <Text className="text-white text-center font-semibold text-lg">
+                  Generate PDF →
+                </Text>
+              )}
             </Pressable>
 
             <Pressable

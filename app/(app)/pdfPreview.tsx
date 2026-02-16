@@ -1,17 +1,19 @@
 // app/(app)/pdfPreview.tsx
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Share, Text, TouchableOpacity, View } from "react-native";
+// PDF preview and sending screen — CLAUDE.md section 4.5
 
+import { useLocalSearchParams, router } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { generateQuotePdf, QuoteVariant, VariantType } from "@/lib/pdf";
+import { generateQuotePdf } from "@/lib/pdf";
+import type { QuoteVariant, VariantType } from "@/types/quote";
 import { sendQuoteEmail, sendQuoteSms } from "@/lib/send";
 import { quotePdfPath, uploadPdfToBucket } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 
-// Если у тебя свои хуки useAuth/useEntitlements — замени тут.
-// Я делаю минимально, чтобы было понятно что куда.
-type QuoteRow = {
+// Types for Supabase rows
+interface QuoteRow {
   id: string;
   user_id: string;
   client_name: string;
@@ -23,32 +25,23 @@ type QuoteRow = {
   variants: QuoteVariant[];
   pdf_url: string | null;
   status: string;
-};
+}
 
-type ProfileRow = {
+interface ProfileRow {
   id: string;
   company_name: string;
   phone: string | null;
   email: string | null;
   logo_url: string | null;
   currency: string;
-};
-
-type SettingsRow = {
-  user_id: string;
-  terms_template: string;
-};
-
-function btnClass(disabled?: boolean) {
-  return `px-4 py-3 rounded-xl ${disabled ? "bg-zinc-300" : "bg-black"} `;
 }
 
-function btnTextClass(disabled?: boolean) {
-  return `text-white font-bold ${disabled ? "opacity-70" : "opacity-100"}`;
+interface SettingsRow {
+  user_id: string;
+  terms_template: string;
 }
 
 export default function PdfPreviewScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams<{ quoteId?: string }>();
   const quoteId = params.quoteId;
 
@@ -330,95 +323,169 @@ export default function PdfPreviewScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
-        <Text className="mt-2 text-zinc-600">Loading…</Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900 items-center justify-center">
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text className="mt-4 text-gray-500 dark:text-gray-400">Loading...</Text>
+      </SafeAreaView>
     );
   }
 
   if (!quote || !profile || !settings) {
     return (
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="text-lg font-bold">Nothing to preview</Text>
-        <Text className="mt-2 text-zinc-600 text-center">We couldn't load this quote.</Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900 items-center justify-center p-6">
+        <Text className="text-6xl mb-4">📄</Text>
+        <Text className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          Nothing to preview
+        </Text>
+        <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
+          We couldn't load this quote.
+        </Text>
+        <Pressable
+          className="bg-blue-600 rounded-lg py-3 px-6 active:bg-blue-700"
+          onPress={() => router.push("./history")}
+        >
+          <Text className="text-white font-semibold">Back to History</Text>
+        </Pressable>
+      </SafeAreaView>
     );
   }
 
+  const variantLabel = quote.selected_variant === "budget"
+    ? "Budget"
+    : quote.selected_variant === "premium"
+    ? "Premium"
+    : "Standard";
+
   return (
-<ScrollView
-  className="flex-1 bg-white"
-  contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
->
-      <View className="mb-3">
-        <Text className="text-2xl font-extrabold">PDF Preview</Text>
-        <Text className="mt-1 text-zinc-600">
-          Quote for <Text className="font-semibold text-zinc-900">{quote.client_name}</Text>
-        </Text>
-      </View>
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
+      <ScrollView className="p-4">
+        {/* Header */}
+        <View className="mb-4">
+          <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+            PDF Preview
+          </Text>
+          <Text className="text-gray-500 dark:text-gray-400 mt-1">
+            Quote for {quote.client_name}
+          </Text>
+        </View>
 
-      <View className="rounded-2xl border border-zinc-200 p-4">
-        <Text className="text-sm text-zinc-600">Selected option</Text>
-        <Text className="mt-1 text-lg font-bold">
-          {quote.selected_variant === "budget" ? "Budget" : quote.selected_variant === "premium" ? "Premium" : "Standard"}
-        </Text>
+        {/* Quote Info Card */}
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700">
+          <View className="flex-row justify-between items-start mb-3">
+            <View>
+              <Text className="text-sm text-gray-500 dark:text-gray-400">
+                Selected Option
+              </Text>
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white">
+                {variantLabel}
+              </Text>
+            </View>
+            <View className="bg-blue-100 dark:bg-blue-900 rounded-full px-3 py-1">
+              <Text className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                {currencySymbol}
+                {(quote.variants.find(v => v.type === quote.selected_variant)?.total ?? 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </Text>
+            </View>
+          </View>
 
-        <Text className="mt-3 text-sm text-zinc-600">PDF status</Text>
-        <Text className="mt-1 font-semibold">
-          {pdfPath ? "Uploaded to storage" : pdfFileUri ? "Generated locally" : "Not generated yet"}
-        </Text>
+          <View className="border-t border-gray-200 dark:border-gray-700 pt-3">
+            <Text className="text-sm text-gray-500 dark:text-gray-400">
+              PDF Status
+            </Text>
+            <Text className="font-medium text-gray-900 dark:text-white">
+              {pdfPath ? "Ready to send" : pdfFileUri ? "Generated locally" : "Not generated yet"}
+            </Text>
+          </View>
 
-        {!isPro && (
-          <View className="mt-3 rounded-xl bg-zinc-100 p-3">
-            <Text className="text-sm font-semibold">Free plan</Text>
-            <Text className="mt-1 text-sm text-zinc-600">
-              Watermark will be included. Sending is limited to 3 quotes/month.
+          {!isPro && (
+            <View className="mt-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+              <Text className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                Free Plan
+              </Text>
+              <Text className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                Watermark will be included. Sending is limited to 3 quotes/month.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Action Buttons */}
+        <View className="gap-3 mb-6">
+          <Pressable
+            className={`rounded-lg py-4 px-4 ${
+              busy ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+            }`}
+            onPress={handleGenerate}
+            disabled={busy}
+          >
+            <Text className="text-white text-center font-semibold text-lg">
+              {pdfPath ? "Regenerate PDF" : "Generate PDF"}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            className={`rounded-lg py-4 px-4 ${
+              busy || !pdfPath ? "bg-green-400" : "bg-green-600 active:bg-green-700"
+            }`}
+            onPress={handleSendEmail}
+            disabled={busy || !pdfPath}
+          >
+            <Text className="text-white text-center font-semibold text-lg">
+              Send Email
+            </Text>
+          </Pressable>
+
+          <Pressable
+            className={`rounded-lg py-4 px-4 ${
+              busy || !pdfPath ? "bg-purple-400" : "bg-purple-600 active:bg-purple-700"
+            }`}
+            onPress={handleSendSms}
+            disabled={busy || !pdfPath}
+          >
+            <Text className="text-white text-center font-semibold text-lg">
+              Send SMS
+            </Text>
+          </Pressable>
+
+          <Pressable
+            className={`rounded-lg py-3 px-4 border ${
+              busy
+                ? "border-gray-200 dark:border-gray-700"
+                : "border-gray-300 dark:border-gray-600 active:bg-gray-100 dark:active:bg-gray-800"
+            }`}
+            onPress={handleShare}
+            disabled={busy}
+          >
+            <Text className="text-gray-700 dark:text-gray-300 text-center font-medium">
+              Share
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Loading Indicator */}
+        {busy && (
+          <View className="flex-row items-center justify-center py-4">
+            <ActivityIndicator color="#2563eb" />
+            <Text className="text-gray-500 dark:text-gray-400 ml-3">
+              Working...
             </Text>
           </View>
         )}
-      </View>
 
-      <View className="mt-4 gap-3">
-        <TouchableOpacity
+        {/* Back Button */}
+        <Pressable
+          className="py-3"
+          onPress={() => router.back()}
           disabled={busy}
-          onPress={handleGenerate}
-          className={btnClass(busy)}
         >
-          <Text className={btnTextClass(busy)}>Generate PDF</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          disabled={busy}
-          onPress={handleSendEmail}
-          className={btnClass(busy)}
-        >
-          <Text className={btnTextClass(busy)}>Send Email</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          disabled={busy}
-          onPress={handleSendSms}
-          className={btnClass(busy)}
-        >
-          <Text className={btnTextClass(busy)}>Send SMS</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          disabled={busy}
-          onPress={handleShare}
-          className={`px-4 py-3 rounded-xl border border-zinc-300 ${busy ? "opacity-70" : "opacity-100"}`}
-        >
-          <Text className="text-zinc-900 font-bold">Share</Text>
-        </TouchableOpacity>
-      </View>
-
-      {busy && (
-        <View className="mt-5 flex-row items-center gap-2">
-          <ActivityIndicator />
-          <Text className="text-zinc-600">Working…</Text>
-        </View>
-      )}
-    </ScrollView>
+          <Text className="text-blue-600 dark:text-blue-400 text-center font-medium">
+            Back to Quote
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

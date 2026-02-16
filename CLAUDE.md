@@ -778,8 +778,8 @@ Phase 7 — Polish + Ship
 
 ## 12. Текущий статус
 
-**Последнее обновление:** 2025-02-16
-**Текущая фаза:** Phase 3 — Quote Flow (завершается)
+**Последнее обновление:** 2026-02-16
+**Текущая фаза:** Phase 5 — History + Settings
 
 ### Что сделано:
 
@@ -795,27 +795,34 @@ Phase 7 — Polish + Ship
 - [x] Auth screens (login, register, resetPassword)
 - [x] AuthContext + useAuth hook
 - [x] Auth guard в (app)/_layout.tsx
-- [x] Onboarding screen (UI готов, TODO: сохранение в БД)
+- [x] Onboarding screen
 
-**Phase 3 — Quote Flow** 🔄 (в процессе)
+**Phase 3 — Quote Flow** ✅
 - [x] newQuote screen + QuoteForm component
 - [x] results screen + VariantCard + QuoteBreakdown
 - [x] useOfflineQuote (автосохранение в AsyncStorage)
 - [x] Интеграция calculateQuote + валидация
-- [ ] useQuotes hook (CRUD операции с Supabase)
+- [x] useQuotes hook (полный CRUD: create, read, update, delete, duplicate)
+- [x] Сохранение quote в Supabase перед переходом на pdfPreview
+
+**Phase 4 — PDF + Sending** ✅
+- [x] lib/pdf.ts (HTML template с watermark для free)
+- [x] lib/storage.ts (upload PDF to Supabase Storage)
+- [x] lib/send.ts (вызов Edge Functions для email/SMS)
+- [x] pdfPreview screen (генерация, upload, send email/SMS, share)
+- [x] Supabase Edge Functions: send-email, send-sms
+- [x] Paywall check перед отправкой
 
 ### Что делаем дальше:
-- [ ] Доделать useQuotes hook для сохранения квотов в БД
-- [ ] pdfPreview screen + lib/pdf.ts
-- [ ] history screen + QuoteListItem
+- [ ] history screen (список квоутов с фильтрами)
+- [ ] settings screen (редактирование профиля, материалов)
+- [ ] paywall screen (RevenueCat интеграция)
 
 ### Блокеры:
 - нет
 
 ### Git commits:
 ```
-6f4d496 phase 3: quote form + results screens with full functionality
-d273821 phase 2: auth screens + navigation flow
 5cf0fd9 phase 1-2: all hooks + tests (110 passing)
 6bb587e initial: project setup before foundation phase
 ```
