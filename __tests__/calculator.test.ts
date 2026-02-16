@@ -1,3 +1,4 @@
+
 // __tests__/calculator.test.ts
 // Unit tests for lib/calculator.ts — CLAUDE.md section 2
 
