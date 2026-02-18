@@ -296,16 +296,16 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}>
         <View
-          className="p-4"
-          style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+          className="p-6"
+          style={{ maxWidth: Platform.OS === "web" ? 640 : undefined, width: "100%", alignSelf: "center" }}
         >
         {/* Company Section */}
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Company
         </Text>
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
           {/* Logo */}
           <View className="mb-4">
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -344,11 +344,11 @@ export default function SettingsScreen() {
 
           {/* Company Name */}
           <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Company Name
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
               style={{ height: 48 }}
               value={companyName}
               onChangeText={handleCompanyNameChange}
@@ -359,11 +359,11 @@ export default function SettingsScreen() {
 
           {/* Phone */}
           <View>
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Phone
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
               style={{ height: 48 }}
               placeholder="(555) 123-4567"
               placeholderTextColor="#9ca3af"
@@ -378,13 +378,13 @@ export default function SettingsScreen() {
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Pricing
         </Text>
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
           <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Hourly Labor Rate ({currencySymbol})
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
               style={{ height: 48 }}
               value={hourlyRate}
               onChangeText={handleHourlyRateChange}
@@ -394,11 +394,11 @@ export default function SettingsScreen() {
             />
           </View>
           <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Default Markup (%)
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
               style={{ height: 48 }}
               value={defaultMarkup}
               onChangeText={handleMarkupChange}
@@ -408,11 +408,11 @@ export default function SettingsScreen() {
             />
           </View>
           <View>
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Sales Tax (%)
             </Text>
             <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
               style={{ height: 48 }}
               value={taxPercent}
               onChangeText={handleTaxChange}
@@ -420,7 +420,7 @@ export default function SettingsScreen() {
               placeholder="0"
               placeholderTextColor="#9ca3af"
             />
-            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Sales tax percentage if applicable
             </Text>
           </View>
@@ -429,7 +429,7 @@ export default function SettingsScreen() {
         {/* Save Button - Primary */}
         {isDirty && (
           <Pressable
-            className={`rounded-lg mb-6 items-center justify-center ${
+            className={`rounded-xl mb-6 items-center justify-center shadow-sm ${
               isSaving ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
             }`}
             style={{ height: 48 }}
@@ -556,9 +556,9 @@ export default function SettingsScreen() {
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Quote Terms
         </Text>
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
           <TextInput
-            className="border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
             style={{ minHeight: 120 }}
             value={termsTemplate}
             onChangeText={handleTermsChange}
@@ -576,7 +576,7 @@ export default function SettingsScreen() {
         <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
           Subscription
         </Text>
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
           <View className="flex-row items-center justify-between mb-4">
             <View>
               <Text className="text-base font-medium text-gray-900 dark:text-white">

@@ -140,21 +140,24 @@ export default function ResultsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
-      <ScrollView className="p-4">
+      <ScrollView
+        className="p-6"
+        contentContainerStyle={{ maxWidth: 640, width: "100%", alignSelf: "center" }}
+      >
         {/* Header */}
-        <View className="mb-4">
-          <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+        <View className="mb-6">
+          <Text className="text-3xl font-bold text-gray-900 dark:text-white">
             Quote Options
           </Text>
-          <Text className="text-gray-500 dark:text-gray-400 mt-1">
+          <Text className="text-gray-500 dark:text-gray-400 mt-2">
             {isReadOnly ? `Quote for ${clientName}` : "Select a pricing tier for your client"}
           </Text>
         </View>
 
         {/* Client Info Summary */}
         {clientName && (
-          <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Client
             </Text>
             <Text className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -185,7 +188,7 @@ export default function ResultsScreen() {
           <View className="gap-3 mb-6">
             {/* Primary button */}
             <Pressable
-              className={`rounded-lg items-center justify-center ${
+              className={`rounded-xl items-center justify-center shadow-sm ${
                 isSaving ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
               }`}
               style={{ height: 48 }}

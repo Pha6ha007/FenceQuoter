@@ -149,7 +149,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -160,11 +160,11 @@ export default function OnboardingScreen() {
         >
           <View
             className="p-6"
-            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+            style={{ maxWidth: Platform.OS === "web" ? 640 : undefined, width: "100%", alignSelf: "center" }}
           >
           {/* Header */}
           <View className="mb-6">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+            <Text className="text-3xl font-bold text-gray-900 dark:text-white">
               Welcome to FenceQuoter
             </Text>
             <Text className="text-gray-500 dark:text-gray-400 mt-2 text-base">
@@ -172,69 +172,76 @@ export default function OnboardingScreen() {
             </Text>
           </View>
 
-          {/* Company Name */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Company Name *
+          {/* Company Info Card */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Company Information
             </Text>
-            <TextInput
-              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.companyName
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              style={{ height: 48 }}
-              placeholder="Your Fence Company"
-              placeholderTextColor="#9ca3af"
-              value={companyName}
-              onChangeText={setCompanyName}
-              autoCapitalize="words"
-              editable={!isSubmitting}
-            />
-            {errors.companyName && (
-              <Text className="text-red-500 text-sm mt-1">
-                {errors.companyName}
+
+            {/* Company Name */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Company Name *
               </Text>
-            )}
+              <TextInput
+                className={`border rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
+                  errors.companyName
+                    ? "border-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+                style={{ height: 48 }}
+                placeholder="Your Fence Company"
+                placeholderTextColor="#9ca3af"
+                value={companyName}
+                onChangeText={setCompanyName}
+                autoCapitalize="words"
+                editable={!isSubmitting}
+              />
+              {errors.companyName && (
+                <Text className="text-red-500 text-sm mt-1">
+                  {errors.companyName}
+                </Text>
+              )}
+            </View>
+
+            {/* Phone */}
+            <View>
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Phone Number *
+              </Text>
+              <TextInput
+                className={`border rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
+                  errors.phone
+                    ? "border-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+                style={{ height: 48 }}
+                placeholder="(555) 123-4567"
+                placeholderTextColor="#9ca3af"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                editable={!isSubmitting}
+              />
+              {errors.phone && (
+                <Text className="text-red-500 text-sm mt-1">{errors.phone}</Text>
+              )}
+            </View>
           </View>
 
-          {/* Phone */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Phone Number *
+          {/* Region Card */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+              Region & Units
             </Text>
-            <TextInput
-              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.phone
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              style={{ height: 48 }}
-              placeholder="(555) 123-4567"
-              placeholderTextColor="#9ca3af"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              editable={!isSubmitting}
-            />
-            {errors.phone && (
-              <Text className="text-red-500 text-sm mt-1">{errors.phone}</Text>
-            )}
-          </View>
-
-          {/* Region */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Region
-            </Text>
-            <View className="flex-row flex-wrap gap-2">
+            <View className="flex-row flex-wrap gap-2 mb-3">
               {REGIONS.map((r) => (
                 <Pressable
                   key={r.code}
-                  className={`px-4 py-2 rounded-lg border ${
+                  className={`px-4 py-2.5 rounded-lg border ${
                     region === r.code
                       ? "bg-blue-600 border-blue-600"
-                      : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+                      : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700"
                   }`}
                   onPress={() => handleRegionChange(r.code)}
                   disabled={isSubmitting}
@@ -242,8 +249,8 @@ export default function OnboardingScreen() {
                   <Text
                     className={
                       region === r.code
-                        ? "text-white font-medium"
-                        : "text-gray-700 dark:text-gray-300"
+                        ? "text-white font-medium text-sm"
+                        : "text-gray-700 dark:text-gray-300 text-sm"
                     }
                   >
                     {r.label}
@@ -251,81 +258,89 @@ export default function OnboardingScreen() {
                 </Pressable>
               ))}
             </View>
-            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Currency: {selectedRegion.symbol} ({selectedRegion.currency}) •
-              Units: {selectedRegion.unit_system}
-            </Text>
-          </View>
-
-          {/* Hourly Rate */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Hourly Labor Rate ({selectedRegion.symbol}) *
-            </Text>
-            <TextInput
-              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.hourlyRate
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              style={{ height: 48 }}
-              placeholder="45"
-              placeholderTextColor="#9ca3af"
-              value={hourlyRate}
-              onChangeText={setHourlyRate}
-              keyboardType="decimal-pad"
-              editable={!isSubmitting}
-            />
-            {errors.hourlyRate && (
-              <Text className="text-red-500 text-sm mt-1">
-                {errors.hourlyRate}
+            <View className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+              <Text className="text-sm text-blue-900 dark:text-blue-100">
+                Currency: {selectedRegion.symbol} ({selectedRegion.currency}) • Units: {selectedRegion.unit_system}
               </Text>
-            )}
+            </View>
           </View>
 
-          {/* Default Markup */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Default Markup (%)
+          {/* Pricing Settings Card */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
+            <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Pricing Settings
             </Text>
-            <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              style={{ height: 48 }}
-              placeholder="20"
-              placeholderTextColor="#9ca3af"
-              value={defaultMarkup}
-              onChangeText={setDefaultMarkup}
-              keyboardType="decimal-pad"
-              editable={!isSubmitting}
-            />
+
+            {/* Hourly Rate */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Hourly Labor Rate ({selectedRegion.symbol}) *
+              </Text>
+              <TextInput
+                className={`border rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
+                  errors.hourlyRate
+                    ? "border-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+                style={{ height: 48 }}
+                placeholder="45"
+                placeholderTextColor="#9ca3af"
+                value={hourlyRate}
+                onChangeText={setHourlyRate}
+                keyboardType="decimal-pad"
+                editable={!isSubmitting}
+              />
+              {errors.hourlyRate && (
+                <Text className="text-red-500 text-sm mt-1">
+                  {errors.hourlyRate}
+                </Text>
+              )}
+            </View>
+
+            {/* Default Markup */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Default Markup (%)
+              </Text>
+              <TextInput
+                className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                style={{ height: 48 }}
+                placeholder="20"
+                placeholderTextColor="#9ca3af"
+                value={defaultMarkup}
+                onChangeText={setDefaultMarkup}
+                keyboardType="decimal-pad"
+                editable={!isSubmitting}
+              />
+            </View>
+
+            {/* Tax Percent */}
+            <View>
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Sales Tax (%)
+              </Text>
+              <TextInput
+                className="border border-gray-200 dark:border-gray-700 rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                style={{ height: 48 }}
+                placeholder="0"
+                placeholderTextColor="#9ca3af"
+                value={taxPercent}
+                onChangeText={setTaxPercent}
+                keyboardType="decimal-pad"
+                editable={!isSubmitting}
+              />
+              <Text className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Add sales tax if applicable in your region
+              </Text>
+            </View>
           </View>
 
-          {/* Tax Percent */}
-          <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Sales Tax (%)
-            </Text>
-            <TextInput
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              style={{ height: 48 }}
-              placeholder="0"
-              placeholderTextColor="#9ca3af"
-              value={taxPercent}
-              onChangeText={setTaxPercent}
-              keyboardType="decimal-pad"
-              editable={!isSubmitting}
-            />
-            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Add sales tax if applicable in your region
-            </Text>
-          </View>
-
-          {/* Submit Button - Primary */}
+          {/* Submit Button */}
           <TouchableOpacity
-            className={`rounded-lg items-center justify-center ${
+            className={`rounded-xl items-center justify-center shadow-sm ${
               isSubmitting ? "bg-blue-400" : "bg-blue-600"
             }`}
-            style={{ height: 48 }}
+            style={{ height: 52 }}
             onPress={() => {
               console.log("BUTTON PRESSED");
               handleSubmit();

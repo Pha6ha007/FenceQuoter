@@ -35,11 +35,11 @@ export default function QuoteBreakdown({
     })}`;
 
   return (
-    <View className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <View>
       {/* Materials Section */}
       {materialItems.length > 0 && (
-        <View className="mb-4">
-          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             Materials
           </Text>
           {materialItems.map((item, index) => (
@@ -50,11 +50,11 @@ export default function QuoteBreakdown({
               index={index}
             />
           ))}
-          <View className="flex-row justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-800">
+          <View className="flex-row justify-between pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
             <Text className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Materials Subtotal
             </Text>
-            <Text className="text-sm font-medium text-gray-900 dark:text-white">
+            <Text className="text-sm font-semibold text-gray-900 dark:text-white">
               {formatCurrency(variant.materials_total)}
             </Text>
           </View>
@@ -63,8 +63,8 @@ export default function QuoteBreakdown({
 
       {/* Labor Section */}
       {laborItems.length > 0 && (
-        <View className="mb-4">
-          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             Labor
           </Text>
           {laborItems.map((item, index) => (
@@ -75,11 +75,11 @@ export default function QuoteBreakdown({
               index={index}
             />
           ))}
-          <View className="flex-row justify-between pt-2 mt-2 border-t border-gray-100 dark:border-gray-800">
+          <View className="flex-row justify-between pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
             <Text className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Labor Subtotal
             </Text>
-            <Text className="text-sm font-medium text-gray-900 dark:text-white">
+            <Text className="text-sm font-semibold text-gray-900 dark:text-white">
               {formatCurrency(variant.labor_total)}
             </Text>
           </View>
@@ -88,8 +88,8 @@ export default function QuoteBreakdown({
 
       {/* Removal Section */}
       {removalItems.length > 0 && (
-        <View className="mb-4">
-          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             Removal
           </Text>
           {removalItems.map((item, index) => (
@@ -105,8 +105,8 @@ export default function QuoteBreakdown({
 
       {/* Custom Items Section */}
       {customItems.length > 0 && (
-        <View className="mb-4">
-          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <View className="mb-5">
+          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             Custom Items
           </Text>
           {customItems.map((item, index) => (
@@ -121,15 +121,15 @@ export default function QuoteBreakdown({
       )}
 
       {/* Totals Section */}
-      <View className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
-        <View className="flex-row justify-between mb-2">
+      <View className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+        <View className="flex-row justify-between mb-3">
           <Text className="text-gray-600 dark:text-gray-400">Subtotal</Text>
           <Text className="text-gray-900 dark:text-white">
             {formatCurrency(variant.subtotal)}
           </Text>
         </View>
 
-        <View className="flex-row justify-between mb-2">
+        <View className="flex-row justify-between mb-3">
           <Text className="text-gray-600 dark:text-gray-400">
             Markup ({variant.markup_percent}%)
           </Text>
@@ -139,7 +139,7 @@ export default function QuoteBreakdown({
         </View>
 
         {variant.tax_amount > 0 && (
-          <View className="flex-row justify-between mb-2">
+          <View className="flex-row justify-between mb-3">
             <Text className="text-gray-600 dark:text-gray-400">Tax</Text>
             <Text className="text-gray-900 dark:text-white">
               {formatCurrency(variant.tax_amount)}
@@ -147,7 +147,7 @@ export default function QuoteBreakdown({
           </View>
         )}
 
-        <View className="flex-row justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+        <View className="flex-row justify-between pt-3 mt-1 border-t border-gray-200 dark:border-gray-700">
           <Text className="font-semibold text-gray-900 dark:text-white">Total</Text>
           <Text className="font-semibold text-gray-900 dark:text-white">
             {formatCurrency(variant.total)}
@@ -185,7 +185,7 @@ function BreakdownRow({ item, currencySymbol, index }: BreakdownRowProps) {
 
   return (
     <View
-      className={`py-2 px-2 rounded ${isEven ? "bg-gray-200/70 dark:bg-gray-700/50" : ""}`}
+      className={`py-2.5 px-3 rounded-lg ${isEven ? "bg-gray-200/70 dark:bg-gray-700/50" : ""}`}
     >
       {/* Name row with dotted leader and price */}
       <View className="flex-row items-baseline">
@@ -212,7 +212,7 @@ function BreakdownRow({ item, currencySymbol, index }: BreakdownRowProps) {
         </Text>
       </View>
       {/* Qty × unit price row */}
-      <Text className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+      <Text className="text-xs text-gray-500 dark:text-gray-500 mt-1">
         {formatQtyUnit(item.qty, item.unit)} × {currencySymbol}
         {item.unit_price.toFixed(2)}
       </Text>

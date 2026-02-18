@@ -487,20 +487,25 @@ export default function PdfPreviewScreen() {
 
   if (!quote || !profile || !settings) {
     return (
-      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900 items-center justify-center p-6">
-        <Text className="text-6xl mb-4">📄</Text>
-        <Text className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          Nothing to preview
-        </Text>
-        <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
-          We couldn't load this quote.
-        </Text>
-        <Pressable
-          className="bg-blue-600 rounded-lg py-3 px-6 active:bg-blue-700"
-          onPress={() => router.push("./history")}
-        >
-          <Text className="text-white font-semibold">Back to History</Text>
-        </Pressable>
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
+        <View className="flex-1 items-center justify-center p-6">
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm items-center" style={{ maxWidth: 480, width: "100%" }}>
+            <Text className="text-6xl mb-4">📄</Text>
+            <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+              Nothing to preview
+            </Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-center mb-6">
+              We couldn't load this quote.
+            </Text>
+            <Pressable
+              className="bg-blue-600 rounded-xl items-center justify-center shadow-sm active:bg-blue-700"
+              style={{ height: 52, width: "100%" }}
+              onPress={() => router.push("./history")}
+            >
+              <Text className="text-white font-semibold text-base">Back to History</Text>
+            </Pressable>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -513,19 +518,22 @@ export default function PdfPreviewScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
-      <ScrollView className="p-4">
+      <ScrollView
+        className="p-6"
+        contentContainerStyle={{ maxWidth: 800, width: "100%", alignSelf: "center" }}
+      >
         {/* Header */}
-        <View className="mb-4">
-          <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+        <View className="mb-6">
+          <Text className="text-3xl font-bold text-gray-900 dark:text-white">
             PDF Preview
           </Text>
-          <Text className="text-gray-500 dark:text-gray-400 mt-1">
+          <Text className="text-gray-500 dark:text-gray-400 mt-2">
             Quote for {quote.client_name}
           </Text>
         </View>
 
         {/* Quote Info Card */}
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border border-gray-200 dark:border-gray-700">
+        <View className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <View className="flex-row justify-between items-start mb-3">
             <View>
               <Text className="text-sm text-gray-500 dark:text-gray-400">
@@ -580,16 +588,16 @@ export default function PdfPreviewScreen() {
 
         {/* HTML Preview (when PDF not available) */}
         {showPreview && previewHtml && (
-          <View className="mb-4">
-            <View className="flex-row justify-between items-center mb-2">
+          <View className="mb-6">
+            <View className="flex-row justify-between items-center mb-3">
               <Text className="text-lg font-semibold text-gray-900 dark:text-white">
                 Quote Preview
               </Text>
               <Pressable onPress={() => setShowPreview(false)}>
-                <Text className="text-blue-600 dark:text-blue-400">Hide</Text>
+                <Text className="text-blue-600 dark:text-blue-400 font-medium">Hide</Text>
               </Pressable>
             </View>
-            <View className="h-96 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+            <View className="h-96 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
               {Platform.OS === "web" ? (
                 <iframe
                   srcDoc={previewHtml}
@@ -615,14 +623,14 @@ export default function PdfPreviewScreen() {
         )}
 
         {/* Action Buttons */}
-        <View className="gap-3 mb-6">
+        <View className="gap-4 mb-6">
           {Platform.OS === "web" ? (
             /* Web: Download PDF via browser print - Primary */
             <Pressable
-              className={`rounded-lg items-center justify-center ${
+              className={`rounded-xl items-center justify-center shadow-sm ${
                 busy ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
               }`}
-              style={{ height: 48 }}
+              style={{ height: 52 }}
               onPress={handleWebDownloadPdf}
               disabled={busy}
             >
@@ -633,10 +641,10 @@ export default function PdfPreviewScreen() {
           ) : (
             /* Native: Generate PDF via react-native-html-to-pdf - Primary */
             <Pressable
-              className={`rounded-lg items-center justify-center ${
+              className={`rounded-xl items-center justify-center shadow-sm ${
                 busy ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
               }`}
-              style={{ height: 48 }}
+              style={{ height: 52 }}
               onPress={handleGenerate}
               disabled={busy}
             >
@@ -649,10 +657,12 @@ export default function PdfPreviewScreen() {
           {Platform.OS === "web" ? (
             /* Web: Send email via mailto link - Secondary */
             <Pressable
-              className={`rounded-lg items-center justify-center border ${
-                busy ? "border-gray-200 dark:border-gray-700" : "border-gray-300 dark:border-gray-600"
+              className={`rounded-xl items-center justify-center border-2 ${
+                busy
+                  ? "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800"
+                  : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 active:bg-gray-100 dark:active:bg-gray-800"
               }`}
-              style={{ height: 48 }}
+              style={{ height: 52 }}
               onPress={handleWebSendEmail}
               disabled={busy}
             >
@@ -663,10 +673,12 @@ export default function PdfPreviewScreen() {
           ) : (
             /* Native: Send via Edge Function - Secondary */
             <Pressable
-              className={`rounded-lg items-center justify-center border ${
-                busy || !pdfPath ? "border-gray-200 dark:border-gray-700" : "border-gray-300 dark:border-gray-600"
+              className={`rounded-xl items-center justify-center border-2 ${
+                busy || !pdfPath
+                  ? "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800"
+                  : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 active:bg-gray-100 dark:active:bg-gray-800"
               }`}
-              style={{ height: 48 }}
+              style={{ height: 52 }}
               onPress={handleSendEmail}
               disabled={busy || !pdfPath}
             >
@@ -681,12 +693,12 @@ export default function PdfPreviewScreen() {
           {/* Share button - native only - Secondary */}
           {Platform.OS !== "web" && (
             <Pressable
-              className={`rounded-lg items-center justify-center border ${
+              className={`rounded-xl items-center justify-center border-2 ${
                 busy
-                  ? "border-gray-200 dark:border-gray-700"
-                  : "border-gray-300 dark:border-gray-600 active:bg-gray-100 dark:active:bg-gray-800"
+                  ? "border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800"
+                  : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 active:bg-gray-100 dark:active:bg-gray-800"
               }`}
-              style={{ height: 48 }}
+              style={{ height: 52 }}
               onPress={handleShare}
               disabled={busy}
             >
@@ -709,11 +721,11 @@ export default function PdfPreviewScreen() {
 
         {/* Back Button */}
         <Pressable
-          className="py-3"
+          className="items-center justify-center py-4"
           onPress={() => router.back()}
           disabled={busy}
         >
-          <Text className="text-blue-600 dark:text-blue-400 text-center font-medium">
+          <Text className="text-blue-600 dark:text-blue-400 text-center font-semibold text-base">
             Back to Quote
           </Text>
         </Pressable>

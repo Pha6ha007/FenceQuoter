@@ -60,38 +60,39 @@ export default function ResetPasswordScreen() {
   // Success state
   if (isSuccess) {
     return (
-      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
         <ScrollView
           className="flex-grow"
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingVertical: 32 }}
         >
           <View
-            className="px-6 py-8"
+            className="px-6"
             style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
           >
-          <View className="items-center">
+          {/* Success Card */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm items-center">
             {/* Success Icon */}
-            <View className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full items-center justify-center mb-6">
-              <Text className="text-3xl">✓</Text>
+            <View className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full items-center justify-center mb-6">
+              <Text className="text-4xl">✓</Text>
             </View>
 
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+            <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-3">
               Check Your Email
             </Text>
-            <Text className="text-gray-500 dark:text-gray-400 text-center mb-6 text-base">
-              We've sent a password reset link to{"\n"}
-              <Text className="font-medium text-gray-700 dark:text-gray-300">
-                {email}
-              </Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-center mb-4 text-base">
+              We've sent a password reset link to
+            </Text>
+            <Text className="font-medium text-gray-700 dark:text-gray-300 text-center mb-6">
+              {email}
             </Text>
 
-            <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+            <Text className="text-sm text-gray-500 dark:text-gray-400 text-center mb-8">
               Didn't receive the email? Check your spam folder or try again.
             </Text>
 
             <Pressable
-              className="bg-blue-600 rounded-lg mb-4 active:bg-blue-700 items-center justify-center w-full"
-              style={{ height: 48 }}
+              className="bg-blue-600 rounded-xl mb-4 active:bg-blue-700 items-center justify-center w-full shadow-sm"
+              style={{ height: 52 }}
               onPress={() => {
                 setIsSuccess(false);
                 setEmail("");
@@ -117,7 +118,7 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -125,15 +126,15 @@ export default function ResetPasswordScreen() {
         <ScrollView
           className="flex-grow"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingVertical: 32 }}
         >
           <View
-            className="px-6 py-8"
+            className="px-6"
             style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
           >
           {/* Back Button */}
           <Pressable
-            className="absolute top-4 left-0 p-2"
+            className="mb-6 flex-row items-center"
             onPress={() => router.back()}
           >
             <Text className="text-blue-600 dark:text-blue-400 text-base">
@@ -142,8 +143,8 @@ export default function ResetPasswordScreen() {
           </Pressable>
 
           {/* Header */}
-          <View className="mb-6">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+          <View className="mb-8">
+            <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center">
               Reset Password
             </Text>
             <Text className="text-gray-500 dark:text-gray-400 text-center mt-2 text-base">
@@ -151,50 +152,53 @@ export default function ResetPasswordScreen() {
             </Text>
           </View>
 
-          {/* Email Input */}
-          <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email
-            </Text>
-            <TextInput
-              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.email
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              style={{ height: 48 }}
-              placeholder="you@example.com"
-              placeholderTextColor="#9ca3af"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              editable={!isButtonDisabled}
-            />
-            {errors.email && (
-              <Text className="text-red-500 text-sm mt-1">{errors.email}</Text>
-            )}
-          </View>
-
-          {/* Reset Button - Primary */}
-          <Pressable
-            className={`rounded-lg mb-6 items-center justify-center ${
-              isButtonDisabled ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
-            }`}
-            style={{ height: 48 }}
-            onPress={handleResetPassword}
-            disabled={isButtonDisabled}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white text-center font-semibold text-base">
-                Send Reset Link
+          {/* Reset Form Card */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-6 shadow-sm">
+            {/* Email Input */}
+            <View className="mb-6">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email
               </Text>
-            )}
-          </Pressable>
+              <TextInput
+                className={`border rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
+                  errors.email
+                    ? "border-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+                style={{ height: 48 }}
+                placeholder="you@example.com"
+                placeholderTextColor="#9ca3af"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                editable={!isButtonDisabled}
+              />
+              {errors.email && (
+                <Text className="text-red-500 text-sm mt-1">{errors.email}</Text>
+              )}
+            </View>
+
+            {/* Reset Button - Primary */}
+            <Pressable
+              className={`rounded-xl items-center justify-center shadow-sm ${
+                isButtonDisabled ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+              }`}
+              style={{ height: 52 }}
+              onPress={handleResetPassword}
+              disabled={isButtonDisabled}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white text-center font-semibold text-base">
+                  Send Reset Link
+                </Text>
+              )}
+            </Pressable>
+          </View>
 
           {/* Login Link */}
           <View className="flex-row justify-center">

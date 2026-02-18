@@ -80,7 +80,7 @@ export default function LoginScreen() {
   const isButtonDisabled = isLoading || isSubmitting;
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
@@ -88,15 +88,15 @@ export default function LoginScreen() {
         <ScrollView
           className="flex-grow"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingVertical: 32 }}
         >
           <View
-            className="px-6 py-8"
+            className="px-6"
             style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
           >
           {/* Header */}
-          <View className="mb-6">
-            <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+          <View className="mb-8">
+            <Text className="text-3xl font-bold text-gray-900 dark:text-white text-center">
               FenceQuoter
             </Text>
             <Text className="text-gray-500 dark:text-gray-400 text-center mt-2 text-base">
@@ -104,125 +104,130 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Email Input */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email
-            </Text>
-            <TextInput
-              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.email
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              style={{ height: 48 }}
-              placeholder="you@example.com"
-              placeholderTextColor="#9ca3af"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              editable={!isButtonDisabled}
-            />
-            {errors.email && (
-              <Text className="text-red-500 text-sm mt-1">{errors.email}</Text>
-            )}
-          </View>
-
-          {/* Password Input */}
-          <View className="mb-4">
-            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Password
-            </Text>
-            <TextInput
-              className={`border rounded-lg px-3 text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                errors.password
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              }`}
-              style={{ height: 48 }}
-              placeholder="Your password"
-              placeholderTextColor="#9ca3af"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="password"
-              editable={!isButtonDisabled}
-            />
-            {errors.password && (
-              <Text className="text-red-500 text-sm mt-1">
-                {errors.password}
+          {/* Login Form Card */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-6 shadow-sm">
+            {/* Email Input */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email
               </Text>
-            )}
-          </View>
+              <TextInput
+                className={`border rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
+                  errors.email
+                    ? "border-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+                style={{ height: 48 }}
+                placeholder="you@example.com"
+                placeholderTextColor="#9ca3af"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                editable={!isButtonDisabled}
+              />
+              {errors.email && (
+                <Text className="text-red-500 text-sm mt-1">{errors.email}</Text>
+              )}
+            </View>
 
-          {/* Forgot Password Link */}
-          <View className="mb-6">
-            <Link href="./resetPassword" asChild>
-              <Pressable>
-                <Text className="text-blue-600 dark:text-blue-400 text-sm text-right">
-                  Forgot password?
+            {/* Password Input */}
+            <View className="mb-4">
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Password
+              </Text>
+              <TextInput
+                className={`border rounded-lg px-4 text-base bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white ${
+                  errors.password
+                    ? "border-red-500"
+                    : "border-gray-200 dark:border-gray-700"
+                }`}
+                style={{ height: 48 }}
+                placeholder="Your password"
+                placeholderTextColor="#9ca3af"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password"
+                editable={!isButtonDisabled}
+              />
+              {errors.password && (
+                <Text className="text-red-500 text-sm mt-1">
+                  {errors.password}
                 </Text>
-              </Pressable>
-            </Link>
-          </View>
+              )}
+            </View>
 
-          {/* Login Button - Primary */}
-          <Pressable
-            className={`rounded-lg mb-4 items-center justify-center ${
-              isButtonDisabled ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
-            }`}
-            style={{ height: 48 }}
-            onPress={handleLogin}
-            disabled={isButtonDisabled}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white text-center font-semibold text-base">
-                Sign In
-              </Text>
-            )}
-          </Pressable>
+            {/* Forgot Password Link */}
+            <View className="mb-6">
+              <Link href="./resetPassword" asChild>
+                <Pressable>
+                  <Text className="text-blue-600 dark:text-blue-400 text-sm text-right">
+                    Forgot password?
+                  </Text>
+                </Pressable>
+              </Link>
+            </View>
+
+            {/* Login Button - Primary */}
+            <Pressable
+              className={`rounded-xl items-center justify-center shadow-sm ${
+                isButtonDisabled ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
+              }`}
+              style={{ height: 52 }}
+              onPress={handleLogin}
+              disabled={isButtonDisabled}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white text-center font-semibold text-base">
+                  Sign In
+                </Text>
+              )}
+            </Pressable>
+          </View>
 
           {/* Divider */}
-          <View className="flex-row items-center my-6">
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
+          <View className="flex-row items-center mb-6">
+            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
             <Text className="mx-4 text-gray-500 dark:text-gray-400 text-sm">
               or continue with
             </Text>
-            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-600" />
+            <View className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
           </View>
 
-          {/* Social Login Buttons - Secondary */}
-          <View className="flex-row gap-3 mb-6">
-            <Pressable
-              className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
-              style={{ height: 48 }}
-              onPress={handleGoogleLogin}
-              disabled={isButtonDisabled}
-            >
-              <Text className="text-gray-700 dark:text-gray-300 font-medium">
-                Google
-              </Text>
-            </Pressable>
-
-            {Platform.OS === "ios" && (
+          {/* Social Login Card */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-6 shadow-sm">
+            <View className="flex-row gap-3">
               <Pressable
-                className="flex-1 flex-row items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 active:bg-gray-50 dark:active:bg-gray-700"
+                className="flex-1 flex-row items-center justify-center border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 active:bg-gray-100 dark:active:bg-gray-800"
                 style={{ height: 48 }}
-                onPress={handleAppleLogin}
+                onPress={handleGoogleLogin}
                 disabled={isButtonDisabled}
               >
                 <Text className="text-gray-700 dark:text-gray-300 font-medium">
-                  Apple
+                  Google
                 </Text>
               </Pressable>
-            )}
+
+              {Platform.OS === "ios" && (
+                <Pressable
+                  className="flex-1 flex-row items-center justify-center border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 active:bg-gray-100 dark:active:bg-gray-800"
+                  style={{ height: 48 }}
+                  onPress={handleAppleLogin}
+                  disabled={isButtonDisabled}
+                >
+                  <Text className="text-gray-700 dark:text-gray-300 font-medium">
+                    Apple
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </View>
 
           {/* Register Link */}

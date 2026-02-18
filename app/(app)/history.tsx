@@ -109,11 +109,11 @@ export default function HistoryScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
         {/* Filter Tabs */}
-        <View className="px-4 pt-2 pb-3">
+        <View className="px-6 pt-3 pb-4">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8 }}
+            contentContainerStyle={{ gap: 10 }}
           >
             {FILTER_TABS.map((tab) => {
               const isActive = activeFilter === tab.key;
@@ -122,7 +122,7 @@ export default function HistoryScreen() {
               return (
                 <Pressable
                   key={tab.key}
-                  className={`px-4 py-2 rounded-full flex-row items-center ${
+                  className={`px-5 py-2.5 rounded-full flex-row items-center shadow-sm ${
                     isActive
                       ? "bg-blue-600"
                       : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
@@ -165,7 +165,7 @@ export default function HistoryScreen() {
 
         {/* Quote List or Empty State */}
         <ScrollView
-          className="flex-1 px-4"
+          className="flex-1 px-6"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

@@ -45,25 +45,31 @@ export default function VariantCard({
 
   return (
     <Pressable
-      className={`rounded-xl p-4 border-2 ${
+      className={`rounded-xl p-5 border-2 ${
         isSelected
           ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
           : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
       }`}
       style={isSelected ? {
         shadowColor: "#2563eb",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 4,
-      } : undefined}
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 6,
+      } : {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 1,
+      }}
       onPress={() => {
         onSelect(variant.type);
         onToggleExpand(variant.type);
       }}
     >
       {/* Header Row */}
-      <View className="flex-row items-center justify-between mb-2">
+      <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center">
           <Text
             className={`text-lg font-semibold ${
@@ -75,7 +81,7 @@ export default function VariantCard({
             {VARIANT_LABELS[variant.type]}
           </Text>
           {isRecommended && (
-            <View className="ml-2 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded">
+            <View className="ml-2 bg-blue-100 dark:bg-blue-900/50 px-2.5 py-1 rounded-md">
               <Text className="text-xs text-blue-700 dark:text-blue-300 font-medium">
                 Recommended
               </Text>
@@ -96,7 +102,7 @@ export default function VariantCard({
       </View>
 
       {/* Total Price */}
-      <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+      <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
         {currencySymbol}
         {variant.total.toLocaleString(undefined, {
           minimumFractionDigits: 2,
@@ -105,7 +111,7 @@ export default function VariantCard({
       </Text>
 
       {/* Summary Row */}
-      <View className="flex-row gap-4">
+      <View className="flex-row gap-4 mb-1">
         <Text className="text-sm text-gray-500 dark:text-gray-400">
           Materials & Labor: {currencySymbol}
           {variant.subtotal.toLocaleString(undefined, {
@@ -120,7 +126,9 @@ export default function VariantCard({
 
       {/* Expanded Breakdown */}
       {isExpanded && (
-        <QuoteBreakdown variant={variant} currencySymbol={currencySymbol} />
+        <View className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <QuoteBreakdown variant={variant} currencySymbol={currencySymbol} />
+        </View>
       )}
     </Pressable>
   );
@@ -154,7 +162,7 @@ export function VariantList({
   });
 
   return (
-    <View className="gap-3">
+    <View className="gap-4">
       {sortedVariants.map((variant) => (
         <VariantCard
           key={variant.type}

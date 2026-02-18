@@ -108,7 +108,14 @@ export default function QuoteListItem({
       rightThreshold={40}
     >
       <Pressable
-        className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-750"
+        className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-750"
+        style={{
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 4,
+          elevation: 1,
+        }}
         onPress={() => onPress(quote)}
       >
         {/* Header Row */}
@@ -169,7 +176,7 @@ export function QuoteList({
   onQuoteDelete,
 }: QuoteListProps) {
   return (
-    <View className="gap-3">
+    <View className="gap-4">
       {quotes.map((quote) => (
         <QuoteListItem
           key={quote.id}

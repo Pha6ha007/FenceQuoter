@@ -213,7 +213,7 @@ export default function NewQuoteScreen() {
   // Show loading state
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-white dark:bg-gray-900 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900 items-center justify-center">
         <ActivityIndicator size="large" color="#2563eb" />
         <Text className="text-gray-500 dark:text-gray-400 mt-4">
           Loading...
@@ -223,27 +223,27 @@ export default function NewQuoteScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["bottom"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
         >
           <View
-            className="p-4"
-            style={{ maxWidth: Platform.OS === "web" ? 480 : undefined, width: "100%", alignSelf: "center" }}
+            className="p-6"
+            style={{ maxWidth: Platform.OS === "web" ? 640 : undefined, width: "100%", alignSelf: "center" }}
           >
           {/* Header with save status */}
           <View className="flex-row justify-between items-center mb-6">
             <View>
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white">
+              <Text className="text-3xl font-bold text-gray-900 dark:text-white">
                 New Quote
               </Text>
               {lastSavedAt && (
-                <Text className="text-sm text-gray-500 dark:text-gray-400">
+                <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   {formatLastSaved(lastSavedAt)}
                 </Text>
               )}
@@ -272,10 +272,10 @@ export default function NewQuoteScreen() {
           <View className="gap-3 mb-6">
             {/* Calculate Button - Primary */}
             <Pressable
-              className={`rounded-lg items-center justify-center ${
+              className={`rounded-xl items-center justify-center shadow-sm ${
                 isCalculating ? "bg-blue-400" : "bg-blue-600 active:bg-blue-700"
               }`}
-              style={{ height: 48 }}
+              style={{ height: 52 }}
               onPress={handleCalculate}
               disabled={isCalculating}
             >
@@ -295,8 +295,8 @@ export default function NewQuoteScreen() {
 
             {/* Clear Draft Button - Secondary */}
             <Pressable
-              className="rounded-lg border border-gray-300 dark:border-gray-600 items-center justify-center"
-              style={{ height: 48 }}
+              className="rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 items-center justify-center"
+              style={{ height: 52 }}
               onPress={handleClearDraft}
               disabled={isCalculating}
             >
